@@ -1,7 +1,9 @@
+DROP TABLE public.users;
+
 CREATE TABLE users (
 	about CITEXT NOT NULL,
 	email CITEXT NOT NULL UNIQUE,
 	fullname CITEXT NOT NULL,
-	nickname CITEXT NOT NULL,
+	nickname CITEXT NOT NULL UNIQUE,
 	id BIGSERIAL PRIMARY KEY
 );

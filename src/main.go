@@ -19,6 +19,9 @@ func main() {
 	mux := mux2.NewRouter()
 
 	mux.HandleFunc(`/api/user/{nick}/create`, handlers.CreateUser).Methods("POST")
+	mux.HandleFunc(`/api/user/{nick}/profile`, handlers.GetUser).Methods("GET")
+	mux.HandleFunc(`/api/user/{nick}/profile`, handlers.UpdateUser).Methods("POST")
+
 	logHandler := logMiddleware(mux)
 
 	log.Fatal(http.ListenAndServe(":5000", logHandler))
