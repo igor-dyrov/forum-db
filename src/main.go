@@ -1,0 +1,25 @@
+package main
+
+import (
+	"net/http"
+	"log"
+	"fmt"
+	mux2 "github.com/gorilla/mux"
+	"./handlers"
+)
+
+func logMiddleware(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		fmt.Printf("URL: %v; Method: %v; Origin: %v\n", r.URL.Path, r.Method, r.Header.Get("Origin"))
+		next.ServeHTTP(w, r)
+	})
+}
+
+func main() {
+	mux := mux2.NewRouter()
+
+	mux.HandleFunc(`/api/user/{nick}/create`, handlers.CreateUser).Methods("POST")
+	logHandler := logMiddleware(mux)
+
+	log.Fatal(http.ListenAndServe(":5000", logHandler))
+}
