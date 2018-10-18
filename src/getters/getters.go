@@ -59,3 +59,35 @@ func UserExists(nickname string) bool {
 	}
 	return false
 }
+
+func GetIdByNickname(nickname string) int {
+	db := common.GetDB()
+	rows, err := db.Query("SELECT id FROM users WHERE nickname = $1", nickname)
+	if err != nil {
+		return 0
+	}
+	var id int
+	for rows.Next() {
+		err = rows.Scan(&id)
+		if err != nil {
+			return 0
+		}
+	}
+	return id
+}
+
+func GetForumBySlug(slug string) models.Forum {
+	db := common.GetDB()
+	rows, err := db.Query("SELECT * from forums WHERE slug = $1", slug)
+	var result models.Forum
+	if err != nil {
+		return models.Forum{}
+	}
+	for rows.Next() {
+		err = rows.Scan(&result.ID, &result.Slug, &result.Title, &result.Author, &result.Threads, &result.Posts)
+	}
+	if err != nil {
+		return models.Forum{}
+	}
+	return result
+}
