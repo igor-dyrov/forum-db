@@ -91,3 +91,19 @@ func GetForumBySlug(slug string) models.Forum {
 	}
 	return result
 }
+
+func GetThreadBySlug(slug string) models.Thread {
+	db := common.GetDB()
+	rows, err := db.Query("SELECT * FROM threads WHERE slug = $1", slug)
+	if err != nil {
+		return models.Thread{}
+	}
+	var result models.Thread
+	for rows.Next() {
+		err = rows.Scan(&result.ID, &result.Slug, &result.Created, &result.Message, &result.Title, &result.Author, &result.Forum, &result.Votes)
+	}
+	if err != nil {
+		return models.Thread{}
+	}
+	return result
+}

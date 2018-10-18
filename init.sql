@@ -26,7 +26,7 @@ CREATE TABLE threads
 	created    TIMESTAMP WITH TIME ZONE,
 	message    TEXT,
 	title      TEXT,
-	author     CITEXT REFERENCES users (nickname),
+	author     CITEXT REFERENCES users(nickname),
 	forum    CITEXT REFERENCES forums(slug),
 	votes    BIGINT DEFAULT 0
 );

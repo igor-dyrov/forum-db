@@ -25,6 +25,21 @@ func CreateThread(w http.ResponseWriter, request *http.Request) {
 	}
 	thread.Forum = mux.Vars(request)["slug"]
 	db := common.GetDB()
+
+	var gotThread = getters.GetThreadBySlug(thread.Slug)
+	if gotThread.Slug != "" {
+		gotThread.ID = getters.GetIdByNickname(gotThread.Author)
+		output, err := json.Marshal(gotThread)
+		if err != nil {
+			http.Error(w, err.Error(), 500)
+			return
+		}
+		w.Header().Set("content-type", "application/json")
+		w.WriteHeader(409)
+		w.Write(output)
+		return
+	}
+
 	if thread.Slug != "" {
 		_, err = db.Exec("INSERT INTO threads (slug, created, message, title, author, forum, votes) VALUES ($1, $2, $3, $4, $5, $6, $7)",
 			thread.Slug, thread.Created, thread.Message, thread.Title, thread.Author, thread.Forum, thread.Votes)
@@ -37,7 +52,7 @@ func CreateThread(w http.ResponseWriter, request *http.Request) {
 		return
 	}
 
-	thread.Id = getters.GetIdByNickname(thread.Author)
+	thread.ID = getters.GetIdByNickname(thread.Author)
 	output, err := json.Marshal(thread)
 	if err != nil {
 		http.Error(w, err.Error(), 500)

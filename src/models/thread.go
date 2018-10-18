@@ -6,7 +6,7 @@ type Thread struct {
 	Author string `json:"author"`
 	Created time.Time `json:"created"`
 	Forum string `json:"forum"`
-	Id int `json:"id"`
+	ID int `json:"id"`
 	Message string `json:"message"`
 	Slug string `json:"slug"`
 	Title string `json:"title"`
