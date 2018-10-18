@@ -4,6 +4,7 @@ import (
 	_ "github.com/lib/pq"
 	"../models"
 	"../common"
+	"database/sql"
 )
 
 func GetUserByNickOrEmail(nickname string, email string) (bool, []models.User) {
@@ -50,14 +51,18 @@ func GetNickByEmail(email string) string {
 
 func UserExists(nickname string) bool {
 	db := common.GetDB()
-	rows, err := db.Query("SELECT * from users WHERE nickname = $1", nickname)
+	rows, err := db.Query("SELECT email from users WHERE nickname = $1", nickname)
 	if err != nil {
 		return false
 	}
+	var email string
 	for rows.Next() {
-		return true
+		rows.Scan(&email)
 	}
-	return false
+	if err != nil || email == "" {
+		return false
+	}
+	return true
 }
 
 func GetIdByNickname(nickname string) int {
@@ -106,4 +111,106 @@ func GetThreadBySlug(slug string) models.Thread {
 		return models.Thread{}
 	}
 	return result
+}
+
+func GetThreads(forum string, limit string, since string, desc string) ([]models.Thread) {
+	db := common.GetDB()
+	var rows *sql.Rows
+	var err error
+
+	if limit != "" {
+		if since != "" {
+			if desc == "true" {
+				rows, err = db.Query("SELECT * FROM threads WHERE forum = $1 AND created <= $2 ORDER BY created DESC LIMIT $3", forum, since, limit)
+			} else {
+				rows, err = db.Query("SELECT * FROM threads WHERE forum = $1 AND created >= $2 ORDER BY created ASC LIMIT $3", forum, since, limit)
+			}
+		} else {
+			if desc == "true" {
+				rows, err = db.Query("SELECT * FROM threads WHERE forum = $1 ORDER BY created DESC LIMIT $2", forum, limit)
+			} else {
+				rows, err = db.Query("SELECT * FROM threads WHERE forum = $1 ORDER BY created ASC LIMIT $2", forum, limit)
+			}
+		}
+	} else {
+		if since != "" {
+			if desc == "true" {
+				rows, err = db.Query("SELECT * FROM threads WHERE forum = $1 AND created <= $2 ORDER BY created DESC", forum, since)
+			} else {
+				rows, err = db.Query("SELECT * FROM threads WHERE forum = $1 AND created <= $2 ORDER BY created ASC", forum, since)
+			}
+		} else {
+			if desc == "true" {
+				rows, err = db.Query("SELECT * FROM threads WHERE forum = $1 ORDER BY created DESC", forum)
+			} else {
+				rows, err = db.Query("SELECT * FROM threads WHERE forum = $1 ORDER BY created ASC", forum)
+			}
+		}
+	}
+
+	if err != nil {
+		return []models.Thread{}
+	}
+	var thread models.Thread
+	var result = make([]models.Thread, 0)
+	for rows.Next() {
+		err = rows.Scan(&thread.ID, &thread.Slug, &thread.Created, &thread.Message, &thread.Title, &thread.Author, &thread.Forum, &thread.Votes)
+		if err != nil {
+			return []models.Thread{}
+		}
+		thread.ID = GetIdByNickname(thread.Author)
+		result = append(result, thread)
+	}
+	return result
+}
+
+func GetThreadsByForum(forum string) ([]models.Thread) {
+	db := common.GetDB()
+	rows, err := db.Query(`SELECT * FROM threads WHERE forum = $1`, forum)
+	if err != nil {
+		return []models.Thread{}
+	}
+	var thread models.Thread
+	var result = make([]models.Thread, 0)
+	for rows.Next() {
+		err = rows.Scan(&thread.ID, &thread.Slug, &thread.Created, &thread.Message, &thread.Title, &thread.Author, &thread.Forum, &thread.Votes)
+		if err != nil {
+			return []models.Thread{}
+		}
+		thread.ID = GetIdByNickname(thread.Author)
+		result = append(result, thread)
+	}
+	return result
+}
+
+func GetSlugCase(slug string) string {
+	db := common.GetDB()
+	rows, err := db.Query(`SELECT slug FROM forums WHERE slug = $1`, slug)
+	if err != nil {
+		return  slug
+	}
+	var result string
+	for rows.Next() {
+		err = rows.Scan(&result)
+	}
+	if err != nil {
+		return  slug
+	}
+	return result
+}
+
+func SlugExists(slug string) bool {
+	db := common.GetDB()
+	rows, err := db.Query(`SELECT title FROM forums WHERE slug = $1`, slug)
+	if err != nil {
+		return false
+	}
+	var title string
+	for rows.Next() {
+		err = rows.Scan(&title)
+	}
+	if err != nil || title == "" {
+		return false
+	}
+	return true
 }
