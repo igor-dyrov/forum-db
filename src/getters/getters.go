@@ -158,7 +158,6 @@ func GetThreads(forum string, limit string, since string, desc string) ([]models
 		if err != nil {
 			return []models.Thread{}
 		}
-		thread.ID = GetIdByNickname(thread.Author)
 		result = append(result, thread)
 	}
 	return result
@@ -215,6 +214,34 @@ func SlugExists(slug string) bool {
 	return true
 }
 
-func GetSlugById(id int) {
+func GetSlugById(id int) string {
+	db := common.GetDB()
+	rows, err := db.Query(`SELECT title FROM threads WHERE id = $1`, id)
+	if err != nil {
+		return ""
+	}
+	var result string
+	for rows.Next() {
+		err = rows.Scan(&result)
+	}
+	if err != nil {
+		return ""
+	}
+	return result
+}
 
+func GetThreadId(slug string) int {
+	db := common.GetDB()
+	rows, err := db.Query(`SELECT id FROM threads WHERE slug = $1`, slug)
+	if err != nil {
+		return 0
+	}
+	var result int
+	for rows.Next() {
+		err = rows.Scan(&result)
+	}
+	if err != nil {
+		return 0
+	}
+	return result
 }

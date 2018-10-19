@@ -56,7 +56,6 @@ func CreateThread(w http.ResponseWriter, request *http.Request) {
 
 	var gotThread = getters.GetThreadBySlug(thread.Slug)
 	if gotThread.Slug != "" {
-		gotThread.ID = getters.GetIdByNickname(gotThread.Author)
 		output, err := json.Marshal(gotThread)
 		if err != nil {
 			http.Error(w, err.Error(), 500)
@@ -69,18 +68,17 @@ func CreateThread(w http.ResponseWriter, request *http.Request) {
 	}
 
 	if thread.Slug != "" {
-		_, err = db.Exec("INSERT INTO threads (slug, created, message, title, author, forum, votes) VALUES ($1, $2, $3, $4, $5, $6, $7)",
-			thread.Slug, thread.Created, thread.Message, thread.Title, thread.Author, thread.Forum, thread.Votes)
+		db.QueryRow("INSERT INTO threads (slug, created, message, title, author, forum, votes) VALUES ($1, $2, $3, $4, $5, $6, $7) RETURNING id",
+			thread.Slug, thread.Created, thread.Message, thread.Title, thread.Author, thread.Forum, thread.Votes).Scan(&thread.ID)
 	} else {
-		_, err = db.Exec("INSERT INTO threads (created, message, title, author, forum, votes) VALUES ($1, $2, $3, $4, $5, $6)",
-			thread.Created, thread.Message, thread.Title, thread.Author, thread.Forum, thread.Votes)
+		db.QueryRow("INSERT INTO threads (created, message, title, author, forum, votes) VALUES ($1, $2, $3, $4, $5, $6) RETURNING id",
+			thread.Created, thread.Message, thread.Title, thread.Author, thread.Forum, thread.Votes).Scan(&thread.ID)
 	}
 	if err != nil {
 		http.Error(w, err.Error(), 500)
 		return
 	}
 
-	thread.ID = getters.GetIdByNickname(thread.Author)
 	thread.Forum = getters.GetSlugCase(thread.Forum)
 	output, err := json.Marshal(thread)
 	if err != nil {

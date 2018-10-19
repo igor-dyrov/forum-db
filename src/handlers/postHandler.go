@@ -6,8 +6,9 @@ import (
 	"encoding/json"
 	"../models"
 	"../common"
+	"../getters"
 	"github.com/gorilla/mux"
-	"time"
+	"strconv"
 )
 
 func CreatePosts(w http.ResponseWriter, request *http.Request) {
@@ -26,9 +27,19 @@ func CreatePosts(w http.ResponseWriter, request *http.Request) {
 	var forum = mux.Vars(request)["slug_or_id"]
 	db := common.GetDB()
 
+	id, err := strconv.Atoi(forum)
+	var threadById string
+	if  err == nil {
+		threadById = getters.GetSlugById(id)
+	}
+
 	for _,post := range posts {
-		post.Forum = forum
-		post.Created = time.Now()
+		if threadById != "" {
+			post.Forum = threadById
+			post.Thread = id
+		} else {
+			post.Forum = forum
+		}
 		_, err = db.Exec(`INSERT INTO posts (author, created, forum, isEdited, message, parent, thread) VALUES ($1, $2, $3, $4, $5, $6, $7)`,
 			post.Author, post.Created, post.Forum, post.IsEdited, post.Message, post.Parent, post.Thread)
 	}
