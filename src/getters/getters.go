@@ -216,7 +216,7 @@ func SlugExists(slug string) bool {
 
 func GetSlugById(id int) string {
 	db := common.GetDB()
-	rows, err := db.Query(`SELECT title FROM threads WHERE id = $1`, id)
+	rows, err := db.Query(`SELECT forum FROM threads WHERE id = $1`, id)
 	if err != nil {
 		return ""
 	}
@@ -242,6 +242,22 @@ func GetThreadId(slug string) int {
 	}
 	if err != nil {
 		return 0
+	}
+	return result
+}
+
+func GetThreadSlug(slug string) string {
+	db := common.GetDB()
+	rows, err := db.Query(`SELECT forum FROM threads WHERE slug = $1`, slug)
+	if err != nil {
+		return ""
+	}
+	var result string
+	for rows.Next() {
+		err = rows.Scan(&result)
+	}
+	if err != nil {
+		return ""
 	}
 	return result
 }

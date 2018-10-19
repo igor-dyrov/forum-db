@@ -9,6 +9,7 @@ import (
 	"../getters"
 	"github.com/gorilla/mux"
 	"strconv"
+	"log"
 )
 
 func CreatePosts(w http.ResponseWriter, request *http.Request) {
@@ -33,17 +34,37 @@ func CreatePosts(w http.ResponseWriter, request *http.Request) {
 		threadById = getters.GetSlugById(id)
 	}
 
-	for _,post := range posts {
-		if threadById != "" {
-			post.Forum = threadById
-			post.Thread = id
-		} else {
-			post.Forum = forum
-		}
-		_, err = db.Exec(`INSERT INTO posts (author, created, forum, isEdited, message, parent, thread) VALUES ($1, $2, $3, $4, $5, $6, $7)`,
-			post.Author, post.Created, post.Forum, post.IsEdited, post.Message, post.Parent, post.Thread)
-	}
+	log.Println("______________________________________")
+	log.Println(forum)
+	log.Println(threadById)
+	log.Println(getters.GetThreadId(forum))
 
+	for i := range posts {
+		if threadById != "" {
+			posts[i].Forum = threadById
+			posts[i].Thread = id
+			log.Println(posts[i].Forum)
+		} else {
+			posts[i].Forum = getters.GetThreadSlug(forum)
+			posts[i].Thread = getters.GetThreadId(forum)
+		}
+		var req = `INSERT INTO posts (author, forum, message, thread) VALUES ('`
+		req += posts[i].Author + `','`
+		req += posts[i].Forum + `', '`
+		req += posts[i].Message + `', `
+		req += strconv.Itoa(posts[i].Thread) + `)`
+		log.Println(req)
+		//db.Exec(req)
+		log.Println("______________________________________")
+
+		db.QueryRow(`INSERT INTO posts (author, created, forum, message, thread) VALUES ($1, $2, $3, $4, $5) RETURNING id`,
+			posts[i].Author, posts[i].Created, posts[i].Forum, posts[i].Message, posts[i].Thread).Scan(&posts[i].Id)
+		//if err != nil {
+		//	http.Error(w, err.Error(), 500)
+		//	return
+		//}
+		log.Println(posts[i].Id)
+	}
 	output, err := json.Marshal(posts)
 	if err != nil {
 		http.Error(w, err.Error(), 500)
