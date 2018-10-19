@@ -1,6 +1,7 @@
 DROP TABLE IF EXISTS public.users CASCADE;
 DROP TABLE IF EXISTS public.forums CASCADE;
 DROP TABLE IF EXISTS public.threads CASCADE;
+DROP TABLE IF EXISTS public.posts CASCADE;
 
 CREATE TABLE users (
 	about TEXT NOT NULL,
@@ -29,4 +30,17 @@ CREATE TABLE threads
 	author     CITEXT REFERENCES users(nickname),
 	forum    CITEXT REFERENCES forums(slug),
 	votes    BIGINT DEFAULT 0
+);
+
+
+CREATE TABLE posts (
+  id        SERIAL	NOT NULL PRIMARY KEY,
+  author    CITEXT	NOT NULL REFERENCES users(nickname),
+  created   TIMESTAMP WITH TIME ZONE,
+  forum     CITEXT REFERENCES forums(slug),
+  isEdited  BOOLEAN	DEFAULT FALSE,
+  message   TEXT	NOT NULL,
+  parent    INTEGER	DEFAULT 0,
+  thread    INTEGER	NOT NULL REFERENCES threads(id),
+  path      BIGINT	ARRAY
 );

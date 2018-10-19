@@ -214,3 +214,7 @@ func SlugExists(slug string) bool {
 	}
 	return true
 }
+
+func GetSlugById(id int) {
+
+}

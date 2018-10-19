@@ -27,6 +27,8 @@ func main() {
 	mux.HandleFunc(`/api/forum/{slug}/create`, handlers.CreateThread).Methods("POST")
 	mux.HandleFunc(`/api/forum/{slug}/threads`, handlers.GetThreads).Methods("GET")
 
+	mux.HandleFunc(`/api/thread/{slug_or_id}/create`, handlers.CreatePosts).Methods("POST")
+
 	logHandler := logMiddleware(mux)
 
 	log.Fatal(http.ListenAndServe(":5000", logHandler))
