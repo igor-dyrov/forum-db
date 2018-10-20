@@ -79,6 +79,12 @@ func CreateThread(w http.ResponseWriter, request *http.Request) {
 		return
 	}
 
+	_, err = db.Exec("UPDATE forums SET threads = threads + 1 WHERE slug = $1", thread.Forum)
+	if err != nil {
+		http.Error(w, err.Error(), 500)
+		return
+	}
+
 	thread.Forum = getters.GetSlugCase(thread.Forum)
 	output, err := json.Marshal(thread)
 	if err != nil {
