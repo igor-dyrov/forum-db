@@ -9,7 +9,6 @@ import (
 	"../getters"
 	"github.com/gorilla/mux"
 	"strconv"
-	"log"
 )
 
 func CreatePosts(w http.ResponseWriter, request *http.Request) {
@@ -39,15 +38,27 @@ func CreatePosts(w http.ResponseWriter, request *http.Request) {
 	//log.Println(threadById)
 	//log.Println(getters.GetThreadId(forum))
 
+	var Thread int
+
+	if threadById != "" {
+		forum = threadById
+		Thread = id
+	} else {
+		forum = getters.GetThreadSlug(forum)
+		Thread = getters.GetThreadId(forum)
+	}
+
 	for i := range posts {
-		if threadById != "" {
-			posts[i].Forum = threadById
-			posts[i].Thread = id
-			log.Println(posts[i].Forum)
-		} else {
-			posts[i].Forum = getters.GetThreadSlug(forum)
-			posts[i].Thread = getters.GetThreadId(forum)
-		}
+		posts[i].Forum = forum
+		posts[i].Thread = Thread
+		//if threadById != "" {
+		//	posts[i].Forum = threadById
+		//	posts[i].Thread = id
+		//	log.Println(posts[i].Forum)
+		//} else {
+		//	posts[i].Forum = getters.GetThreadSlug(forum)
+		//	posts[i].Thread = getters.GetThreadId(forum)
+		//}
 		//var req = `INSERT INTO posts (author, forum, message, thread) VALUES ('`
 		//req += posts[i].Author + `','`
 		//req += posts[i].Forum + `', '`
@@ -58,7 +69,11 @@ func CreatePosts(w http.ResponseWriter, request *http.Request) {
 		db.QueryRow(`INSERT INTO posts (author, created, forum, message, thread) VALUES ($1, $2, $3, $4, $5) RETURNING id`,
 			posts[i].Author, posts[i].Created, posts[i].Forum, posts[i].Message, posts[i].Thread).Scan(&posts[i].Id)
 	}
-	_, err = db.Exec("UPDATE forums SET posts = posts + $1 WHERE slug = $2", len(posts), posts[0].Forum)
+	if len(posts) == 0 {
+
+	}
+
+	_, err = db.Exec("UPDATE forums SET posts = posts + $1 WHERE slug = $2", len(posts), forum)
 	if err != nil {
 		http.Error(w, err.Error(), 500)
 		return
