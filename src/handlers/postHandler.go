@@ -30,13 +30,21 @@ func CreatePosts(w http.ResponseWriter, request *http.Request) {
 	id, err := strconv.Atoi(forum)
 	var threadById string
 	if  err == nil {
+		if !getters.ThreadExists(id) {
+			var msg models.ResponseMessage
+			msg.Message = `Can't find post thread by id: ` + forum
+			output, err := json.Marshal(msg)
+			if err != nil {
+				http.Error(w, err.Error(), 500)
+				return
+			}
+			w.Header().Set("content-type", "application/json")
+			w.WriteHeader(404)
+			w.Write(output)
+			return
+		}
 		threadById = getters.GetSlugById(id)
 	}
-
-	//log.Println("______________________________________")
-	//log.Println(forum)
-	//log.Println(threadById)
-	//log.Println(getters.GetThreadId(forum))
 
 	var Thread int
 
@@ -46,6 +54,19 @@ func CreatePosts(w http.ResponseWriter, request *http.Request) {
 	} else {
 		forum = getters.GetThreadSlug(forum)
 		Thread = getters.GetThreadId(forum)
+		if Thread == -1 {
+			var msg models.ResponseMessage
+			msg.Message = `Can't find post thread by slug: ` + forum
+			output, err := json.Marshal(msg)
+			if err != nil {
+				http.Error(w, err.Error(), 500)
+				return
+			}
+			w.Header().Set("content-type", "application/json")
+			w.WriteHeader(404)
+			w.Write(output)
+			return
+		}
 	}
 
 	err = nil
@@ -53,24 +74,28 @@ func CreatePosts(w http.ResponseWriter, request *http.Request) {
 	for i := range posts {
 		posts[i].Forum = forum
 		posts[i].Thread = Thread
-		//if threadById != "" {
-		//	posts[i].Forum = threadById
-		//	posts[i].Thread = id
-		//	log.Println(posts[i].Forum)
-		//} else {
-		//	posts[i].Forum = getters.GetThreadSlug(forum)
-		//	posts[i].Thread = getters.GetThreadId(forum)
-		//}
-		//var req = `INSERT INTO posts (author, forum, message, thread) VALUES ('`
-		//req += posts[i].Author + `','`
-		//req += posts[i].Forum + `', '`
-		//req += posts[i].Message + `', `
-		//req += strconv.Itoa(posts[i].Thread) + `)`
-		//log.Println(req)
-
+		if !getters.UserExists(posts[i].Author) {
+			var message models.ResponseMessage
+			message.Message = "Can't find thread author by nickname: " + posts[i].Author
+			output, err := json.Marshal(message)
+			if err != nil {
+				http.Error(w, err.Error(), 500)
+				return
+			}
+			w.Header().Set("content-type", "application/json")
+			w.WriteHeader(404)
+			w.Write(output)
+			return
+		}
 		db.QueryRow(`INSERT INTO posts (author, created, forum, message, thread) VALUES ($1, $2, $3, $4, $5) RETURNING id`,
 			posts[i].Author, posts[i].Created, posts[i].Forum, posts[i].Message, posts[i].Thread).Scan(&posts[i].Id)
+		if err != nil {
+			http.Error(w, err.Error(), 500)
+			return
+		}
 	}
+
+
 	if len(posts) == 0 {
 		var post models.Post
 		post.Thread = Thread

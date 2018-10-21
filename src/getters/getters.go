@@ -234,14 +234,14 @@ func GetThreadId(forum string) int {
 	db := common.GetDB()
 	rows, err := db.Query(`SELECT id FROM threads WHERE forum = $1`, forum)
 	if err != nil {
-		return 0
+		return -1
 	}
-	var result int
+	var result = -1
 	for rows.Next() {
 		err = rows.Scan(&result)
 	}
 	if err != nil {
-		return 0
+		return -1
 	}
 	return result
 }
@@ -260,4 +260,23 @@ func GetThreadSlug(slug string) string {
 		return ""
 	}
 	return result
+}
+
+func ThreadExists(id int) bool {
+	db := common.GetDB()
+	rows, err := db.Query(`SELECT id FROM threads WHERE id = $1`, id)
+	if err != nil {
+		return false
+	}
+	var Id = -1
+	for rows.Next() {
+		err = rows.Scan(&Id)
+	}
+	if err != nil {
+		return false
+	}
+	if Id != -1 {
+		return true
+	}
+	return false
 }
