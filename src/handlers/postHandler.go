@@ -48,6 +48,8 @@ func CreatePosts(w http.ResponseWriter, request *http.Request) {
 		Thread = getters.GetThreadId(forum)
 	}
 
+	err = nil
+
 	for i := range posts {
 		posts[i].Forum = forum
 		posts[i].Thread = Thread
