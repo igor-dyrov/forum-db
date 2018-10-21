@@ -280,3 +280,19 @@ func ThreadExists(id int) bool {
 	}
 	return false
 }
+
+func CheckParent(parentId int, thread int) bool {
+	db := common.GetDB()
+	rows, err := db.Query(`SELECT thread FROM posts WHERE id = $1`, parentId)
+	if err != nil {
+		return false
+	}
+	var parentThread int
+	for rows.Next() {
+		rows.Scan(&parentThread)
+	}
+	if err != nil {
+		return false
+	}
+	return parentThread == thread
+}

@@ -87,6 +87,19 @@ func CreatePosts(w http.ResponseWriter, request *http.Request) {
 			w.Write(output)
 			return
 		}
+		if posts[i].Parent != 0 && !getters.CheckParent(posts[i].Parent, posts[i].Thread) {
+			var msg models.ResponseMessage
+			msg.Message = `Parent post was created in another thread`
+			output, err := json.Marshal(msg)
+			if err != nil {
+				http.Error(w, err.Error(), 500)
+				return
+			}
+			w.Header().Set("content-type", "application/json")
+			w.WriteHeader(409)
+			w.Write(output)
+			return
+		}
 		db.QueryRow(`INSERT INTO posts (author, created, forum, message, thread) VALUES ($1, $2, $3, $4, $5) RETURNING id`,
 			posts[i].Author, posts[i].Created, posts[i].Forum, posts[i].Message, posts[i].Thread).Scan(&posts[i].Id)
 		if err != nil {
