@@ -70,14 +70,24 @@ func CreatePosts(w http.ResponseWriter, request *http.Request) {
 			posts[i].Author, posts[i].Created, posts[i].Forum, posts[i].Message, posts[i].Thread).Scan(&posts[i].Id)
 	}
 	if len(posts) == 0 {
-
+		var post models.Post
+		post.Thread = Thread
+		post.Forum = forum
+		db.QueryRow(`INSERT INTO posts (forum, thread) VALUES($1, $2) RETURNING id`, post.Forum, post.Thread).Scan(&post.Id)
+		if err != nil {
+			http.Error(w, err.Error(), 500)
+			return
+		}
+		_, err = db.Exec("UPDATE forums SET posts = posts + 1 WHERE slug = $1", forum)
+	} else {
+		_, err = db.Exec("UPDATE forums SET posts = posts + $1 WHERE slug = $2", len(posts), forum)
 	}
 
-	_, err = db.Exec("UPDATE forums SET posts = posts + $1 WHERE slug = $2", len(posts), forum)
 	if err != nil {
 		http.Error(w, err.Error(), 500)
 		return
 	}
+
 	output, err := json.Marshal(posts)
 	if err != nil {
 		http.Error(w, err.Error(), 500)
