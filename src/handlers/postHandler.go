@@ -9,6 +9,7 @@ import (
 	"../getters"
 	"github.com/gorilla/mux"
 	"strconv"
+	"log"
 )
 
 func CreatePosts(w http.ResponseWriter, request *http.Request) {
@@ -27,10 +28,10 @@ func CreatePosts(w http.ResponseWriter, request *http.Request) {
 	var slug_or_id = mux.Vars(request)["slug_or_id"]
 	db := common.GetDB()
 
-	id, err := strconv.Atoi(slug_or_id)
-	var threadById string
-	if  err == nil {
-		if !getters.ThreadExists(id) {
+	id, err := strconv.Atoi(slug_or_id) //try to get id
+	var forum string
+	if  err == nil { //got id
+		if !getters.ThreadExists(id) { //check user by id
 			var msg models.ResponseMessage
 			msg.Message = `Can't find post thread by id: ` + slug_or_id
 			output, err := json.Marshal(msg)
@@ -43,18 +44,18 @@ func CreatePosts(w http.ResponseWriter, request *http.Request) {
 			w.Write(output)
 			return
 		}
-		threadById = getters.GetSlugById(id)
+		forum = getters.GetSlugById(id) //get forum by id
 	}
-
+	err = nil
 	var Thread int
-
-	if threadById != "" {
-		slug_or_id = threadById
+	log.Println(`___________________________________________`)
+	log.Println(getters.GetThreadId(slug_or_id))
+	if forum != "" {
 		Thread = id
 	} else {
-		slug_or_id = getters.GetThreadSlug(slug_or_id)
+		forum = getters.GetThreadSlug(slug_or_id) //get forum from thread by slug
 		Thread = getters.GetThreadId(slug_or_id)
-		if Thread == -1 {
+		if Thread == -1 { //can`t find forum by id
 			var msg models.ResponseMessage
 			msg.Message = `Can't find post thread by slug: ` + slug_or_id
 			output, err := json.Marshal(msg)
@@ -68,11 +69,13 @@ func CreatePosts(w http.ResponseWriter, request *http.Request) {
 			return
 		}
 	}
-
+	log.Println(slug_or_id)
+	log.Println(Thread)
+	log.Println(`___________________________________________`)
 	err = nil
 
 	for i := range posts {
-		posts[i].Forum = slug_or_id
+		posts[i].Forum = forum
 		posts[i].Thread = Thread
 		if !getters.UserExists(posts[i].Author) {
 			var message models.ResponseMessage
@@ -112,15 +115,15 @@ func CreatePosts(w http.ResponseWriter, request *http.Request) {
 	if len(posts) == 0 {
 		var post models.Post
 		post.Thread = Thread
-		post.Forum = slug_or_id
+		post.Forum = forum
 		db.QueryRow(`INSERT INTO posts (forum, thread) VALUES($1, $2) RETURNING id`, post.Forum, post.Thread).Scan(&post.Id)
 		if err != nil {
 			http.Error(w, err.Error(), 500)
 			return
 		}
-		_, err = db.Exec("UPDATE forums SET posts = posts + 1 WHERE slug = $1", slug_or_id)
+		_, err = db.Exec("UPDATE forums SET posts = posts + 1 WHERE slug = $1", forum)
 	} else {
-		_, err = db.Exec("UPDATE forums SET posts = posts + $1 WHERE slug = $2", len(posts), slug_or_id)
+		_, err = db.Exec("UPDATE forums SET posts = posts + $1 WHERE slug = $2", len(posts), forum)
 	}
 
 	if err != nil {

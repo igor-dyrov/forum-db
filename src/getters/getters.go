@@ -232,7 +232,7 @@ func GetSlugById(id int) string {
 
 func GetThreadId(forum string) int {
 	db := common.GetDB()
-	rows, err := db.Query(`SELECT id FROM threads WHERE forum = $1`, forum)
+	rows, err := db.Query(`SELECT id FROM threads WHERE slug = $1`, forum)
 	if err != nil {
 		return -1
 	}
