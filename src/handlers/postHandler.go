@@ -24,15 +24,15 @@ func CreatePosts(w http.ResponseWriter, request *http.Request) {
 		http.Error(w, err.Error(), 500)
 		return
 	}
-	var forum = mux.Vars(request)["slug_or_id"]
+	var slug_or_id = mux.Vars(request)["slug_or_id"]
 	db := common.GetDB()
 
-	id, err := strconv.Atoi(forum)
+	id, err := strconv.Atoi(slug_or_id)
 	var threadById string
 	if  err == nil {
 		if !getters.ThreadExists(id) {
 			var msg models.ResponseMessage
-			msg.Message = `Can't find post thread by id: ` + forum
+			msg.Message = `Can't find post thread by id: ` + slug_or_id
 			output, err := json.Marshal(msg)
 			if err != nil {
 				http.Error(w, err.Error(), 500)
@@ -49,14 +49,14 @@ func CreatePosts(w http.ResponseWriter, request *http.Request) {
 	var Thread int
 
 	if threadById != "" {
-		forum = threadById
+		slug_or_id = threadById
 		Thread = id
 	} else {
-		forum = getters.GetThreadSlug(forum)
-		Thread = getters.GetThreadId(forum)
+		slug_or_id = getters.GetThreadSlug(slug_or_id)
+		Thread = getters.GetThreadId(slug_or_id)
 		if Thread == -1 {
 			var msg models.ResponseMessage
-			msg.Message = `Can't find post thread by slug: ` + forum
+			msg.Message = `Can't find post thread by slug: ` + slug_or_id
 			output, err := json.Marshal(msg)
 			if err != nil {
 				http.Error(w, err.Error(), 500)
@@ -72,7 +72,7 @@ func CreatePosts(w http.ResponseWriter, request *http.Request) {
 	err = nil
 
 	for i := range posts {
-		posts[i].Forum = forum
+		posts[i].Forum = slug_or_id
 		posts[i].Thread = Thread
 		if !getters.UserExists(posts[i].Author) {
 			var message models.ResponseMessage
@@ -112,15 +112,15 @@ func CreatePosts(w http.ResponseWriter, request *http.Request) {
 	if len(posts) == 0 {
 		var post models.Post
 		post.Thread = Thread
-		post.Forum = forum
+		post.Forum = slug_or_id
 		db.QueryRow(`INSERT INTO posts (forum, thread) VALUES($1, $2) RETURNING id`, post.Forum, post.Thread).Scan(&post.Id)
 		if err != nil {
 			http.Error(w, err.Error(), 500)
 			return
 		}
-		_, err = db.Exec("UPDATE forums SET posts = posts + 1 WHERE slug = $1", forum)
+		_, err = db.Exec("UPDATE forums SET posts = posts + 1 WHERE slug = $1", slug_or_id)
 	} else {
-		_, err = db.Exec("UPDATE forums SET posts = posts + $1 WHERE slug = $2", len(posts), forum)
+		_, err = db.Exec("UPDATE forums SET posts = posts + $1 WHERE slug = $2", len(posts), slug_or_id)
 	}
 
 	if err != nil {
