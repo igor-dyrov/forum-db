@@ -13,3 +13,7 @@ type Post struct {
 	Path []int `json:"path"`
 	IsEdited bool `json:"isEdited"`
 }
+
+type PostResponse struct {
+	Post Post `json:"post"`
+}

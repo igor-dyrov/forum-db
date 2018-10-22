@@ -9,6 +9,7 @@ import (
 	"../getters"
 	"github.com/gorilla/mux"
 	"strconv"
+	"time"
 )
 
 func CreatePosts(w http.ResponseWriter, request *http.Request) {
@@ -71,6 +72,7 @@ func CreatePosts(w http.ResponseWriter, request *http.Request) {
 	for i := range posts {
 		posts[i].Forum = forum
 		posts[i].Thread = Thread
+		posts[i].Created = time.Now()
 		if !getters.UserExists(posts[i].Author) {
 			var message models.ResponseMessage
 			message.Message = "Can't find thread author by nickname: " + posts[i].Author
@@ -110,6 +112,7 @@ func CreatePosts(w http.ResponseWriter, request *http.Request) {
 		var post models.Post
 		post.Thread = Thread
 		post.Forum = forum
+		post.Created = time.Now()
 		db.QueryRow(`INSERT INTO posts (forum, thread) VALUES($1, $2) RETURNING id`, post.Forum, post.Thread).Scan(&post.Id)
 		if err != nil {
 			http.Error(w, err.Error(), 500)
@@ -132,5 +135,48 @@ func CreatePosts(w http.ResponseWriter, request *http.Request) {
 	}
 	w.Header().Set("content-type", "application/json")
 	w.WriteHeader(201)
+	w.Write(output)
+}
+
+func GetPost(w http.ResponseWriter, request *http.Request) {
+	var id = mux.Vars(request)["id"]
+	db := common.GetDB()
+	var result models.Post
+	result.Id = -1
+	rows, err := db.Query(`SELECT * FROM posts WHERE id = $1`, id)
+	if err != nil {
+		http.Error(w, err.Error(), 500)
+		return
+	}
+	for rows.Next()  {
+		err = rows.Scan(&result.Id, &result.Author, &result.Created, &result.Forum,
+			&result.IsEdited, &result.Message, &result.Parent, &result.Thread, &result.Path)
+	}
+	//if err != nil{
+	//	http.Error(w, err.Error(), 500)
+	//	return
+	//}
+	if result.Id == -1 {
+		var msg models.ResponseMessage
+		msg.Message = `Can't find post post by id: ` + id
+		output, err := json.Marshal(msg)
+		if err != nil {
+			http.Error(w, err.Error(), 500)
+			return
+		}
+		w.Header().Set("content-type", "application/json")
+		w.WriteHeader(404)
+		w.Write(output)
+		return
+	}
+	var Post models.PostResponse
+	Post.Post = result
+	output, err := json.Marshal(Post)
+	if err != nil {
+		http.Error(w, err.Error(), 500)
+		return
+	}
+	w.Header().Set("content-type", "application/json")
+	w.WriteHeader(200)
 	w.Write(output)
 }
