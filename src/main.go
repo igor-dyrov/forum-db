@@ -28,6 +28,7 @@ func main() {
 	mux.HandleFunc(`/api/forum/{slug}/threads`, handlers.GetThreads).Methods("GET")
 
 	mux.HandleFunc(`/api/thread/{slug_or_id}/create`, handlers.CreatePosts).Methods("POST")
+	mux.HandleFunc(`/api/thread/{slug_or_id}/vote`, handlers.CreateVote).Methods("POST")
 
 	logHandler := logMiddleware(mux)
 

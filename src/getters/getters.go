@@ -296,3 +296,33 @@ func CheckParent(parentId int, thread int) bool {
 	}
 	return parentThread == thread
 }
+
+func GetIdBySlug(slug string) int {
+	db := common.GetDB()
+	rows, err := db.Query(`SELECT id FROM threads WHERE slug = $1`, slug)
+	if err != nil {
+		return -1
+	}
+	var result = -1
+	for rows.Next() {
+		err = rows.Scan(&result)
+	}
+	if err != nil {
+		return -1
+	}
+	return result
+}
+
+func GetVote(nick string, thread int) models.Vote {
+	db := common.GetDB()
+	rows, err := db.Query(`SELECT * FROM votes WHERE nickname = $1 AND thread = $2`, nick, thread)
+	var result models.Vote
+	result.ID = -1
+	if err != nil {
+		return result
+	}
+	for rows.Next() {
+		err = rows.Scan(&result.ID, &result.Nickname, &result.Voice, &result.Thread)
+	}
+	return result
+}

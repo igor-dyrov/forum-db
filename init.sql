@@ -2,6 +2,7 @@ DROP TABLE IF EXISTS public.users CASCADE;
 DROP TABLE IF EXISTS public.forums CASCADE;
 DROP TABLE IF EXISTS public.threads CASCADE;
 DROP TABLE IF EXISTS public.posts CASCADE;
+DROP TABLE IF EXISTS public.votes CASCADE;
 
 CREATE TABLE users (
 	about TEXT NOT NULL,
@@ -43,4 +44,12 @@ CREATE TABLE posts (
   parent    INTEGER	DEFAULT 0,
   thread    INTEGER	NOT NULL REFERENCES threads(id),
   path      BIGINT	ARRAY
+);
+
+CREATE TABLE votes (
+  id        SERIAL      NOT NULL PRIMARY KEY,
+  nickname  CITEXT     NOT NULL REFERENCES users(nickname),
+  voice     INTEGER,
+  thread    INTEGER     NOT NULL REFERENCES threads(id),
+  UNIQUE(nickname, thread)
 );
