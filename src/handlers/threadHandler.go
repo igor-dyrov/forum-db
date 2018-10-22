@@ -201,3 +201,83 @@ func ThreadDetails(w http.ResponseWriter, request *http.Request) {
 	w.WriteHeader(200)
 	w.Write(output)
 }
+
+func UpdateThread(w http.ResponseWriter, request *http.Request) {
+	b, err := ioutil.ReadAll(request.Body)
+	if err != nil {
+		http.Error(w, err.Error(), 500)
+		return
+	}
+	defer request.Body.Close()
+	var thread models.Thread
+	err = json.Unmarshal(b, &thread)
+	if err != nil {
+		http.Error(w, err.Error(), 500)
+		return
+	}
+	slug_or_id := mux.Vars(request)["slug_or_id"]
+	db := common.GetDB()
+	id, err := strconv.Atoi(slug_or_id) //try to get id
+	if  err == nil { //got id
+		if !getters.ThreadExists(id) { //check user by id
+			var msg models.ResponseMessage
+			msg.Message = `Can't find post thread by id: ` + slug_or_id
+			output, err := json.Marshal(msg)
+			if err != nil {
+				http.Error(w, err.Error(), 500)
+				return
+			}
+			w.Header().Set("content-type", "application/json")
+			w.WriteHeader(404)
+			w.Write(output)
+			return
+		}
+	} else { // got slug
+		id = getters.GetIdBySlug(slug_or_id)
+		if id == -1 {
+			var msg models.ResponseMessage
+			msg.Message = `Can't find post thread by slug: ` + slug_or_id
+			output, err := json.Marshal(msg)
+			if err != nil {
+				http.Error(w, err.Error(), 500)
+				return
+			}
+			w.Header().Set("content-type", "application/json")
+			w.WriteHeader(404)
+			w.Write(output)
+			return
+		}
+	}
+	var req = `UPDATE threads SET `
+	var result models.Thread
+	if thread.Message != "" {
+		req += `message = '` + thread.Message + `'`
+		if thread.Title != "" {
+			req += `, `
+		}
+	}
+	if thread.Title != "" {
+		req += `title = '` + thread.Title + `' `
+	}
+	req += `WHERE id = ` + strconv.Itoa(id)
+	req += ` RETURNING *`
+	if thread.Title == "" && thread.Message == "" {
+		err = db.QueryRow(`SELECT * FROM threads WHERE id = $1`, id).Scan(&result.ID, &result.Slug, &result.Created, &result.Message,
+			&result.Title, &result.Author, &result.Forum, &result.Votes)
+	} else {
+		err = db.QueryRow(req).Scan(&result.ID, &result.Slug, &result.Created, &result.Message,
+			&result.Title, &result.Author, &result.Forum, &result.Votes)
+	}
+	if err != nil {
+		http.Error(w, err.Error(), 500)
+		return
+	}
+	output, err := json.Marshal(result)
+	if err != nil {
+		http.Error(w, err.Error(), 500)
+		return
+	}
+	w.Header().Set("content-type", "application/json")
+	w.WriteHeader(200)
+	w.Write(output)
+}

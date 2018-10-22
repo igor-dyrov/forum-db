@@ -326,3 +326,4 @@ func GetVote(nick string, thread int) models.Vote {
 	}
 	return result
 }
+

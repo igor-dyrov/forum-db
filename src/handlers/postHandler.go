@@ -9,7 +9,6 @@ import (
 	"../getters"
 	"github.com/gorilla/mux"
 	"strconv"
-	"log"
 )
 
 func CreatePosts(w http.ResponseWriter, request *http.Request) {
@@ -48,8 +47,6 @@ func CreatePosts(w http.ResponseWriter, request *http.Request) {
 	}
 	err = nil
 	var Thread int
-	log.Println(`___________________________________________`)
-	log.Println(getters.GetThreadId(slug_or_id))
 	if forum != "" {
 		Thread = id
 	} else {
@@ -69,9 +66,6 @@ func CreatePosts(w http.ResponseWriter, request *http.Request) {
 			return
 		}
 	}
-	log.Println(slug_or_id)
-	log.Println(Thread)
-	log.Println(`___________________________________________`)
 	err = nil
 
 	for i := range posts {
