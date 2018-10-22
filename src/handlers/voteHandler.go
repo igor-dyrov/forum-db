@@ -9,7 +9,6 @@ import (
 	"../getters"
 	"github.com/gorilla/mux"
 	"strconv"
-	"log"
 )
 
 func CreateVote(w http.ResponseWriter, request *http.Request) {
@@ -23,6 +22,19 @@ func CreateVote(w http.ResponseWriter, request *http.Request) {
 	err = json.Unmarshal(b, &vote)
 	if err != nil {
 		http.Error(w, err.Error() + "24", 500)
+		return
+	}
+	if !getters.UserExists(vote.Nickname) {
+		var message models.ResponseMessage
+		message.Message = "Can't find thread author by nickname: " + vote.Nickname
+		output, err := json.Marshal(message)
+		if err != nil {
+			http.Error(w, err.Error(), 500)
+			return
+		}
+		w.Header().Set("content-type", "application/json")
+		w.WriteHeader(404)
+		w.Write(output)
 		return
 	}
 	var slug_or_id = mux.Vars(request)["slug_or_id"]
@@ -64,11 +76,6 @@ func CreateVote(w http.ResponseWriter, request *http.Request) {
 	err = nil
 	var numOfVoices = 0
 	oldVote := getters.GetVote(vote.Nickname, thread.ID)
-	log.Println(`____________________________________`)
-	log.Println(oldVote.ID)
-	log.Println(vote.Nickname)
-	log.Println(vote.Thread)
-	log.Println(`____________________________________`)
 	if oldVote.ID != -1 {
 		if oldVote.Voice != vote.Voice {
 			_, err = db.Query(`UPDATE votes SET voice = $1 WHERE id = $2`, vote.Voice, oldVote.ID)
