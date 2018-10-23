@@ -9,6 +9,7 @@ import (
 	"../getters"
 	"github.com/gorilla/mux"
 	"strconv"
+	"log"
 )
 
 func CreateThread(w http.ResponseWriter, request *http.Request) {
@@ -273,6 +274,143 @@ func UpdateThread(w http.ResponseWriter, request *http.Request) {
 		return
 	}
 	output, err := json.Marshal(result)
+	if err != nil {
+		http.Error(w, err.Error(), 500)
+		return
+	}
+	w.Header().Set("content-type", "application/json")
+	w.WriteHeader(200)
+	w.Write(output)
+}
+
+
+func GetThreadPosts(w http.ResponseWriter, request *http.Request) {
+	var slug_or_id = mux.Vars(request)["slug_or_id"]
+	log.Println(`____________________________________`)
+	limit := request.URL.Query().Get("limit")
+	since := request.URL.Query().Get("since")
+	sort := request.URL.Query().Get("sort")
+	desc := request.URL.Query().Get("desc")
+
+	db := common.GetDB()
+	id, err := strconv.Atoi(slug_or_id) //try to get id
+	if  err == nil { //got id
+		if !getters.ThreadExists(id) { //check user by id
+			var msg models.ResponseMessage
+			msg.Message = `Can't find post thread by id: ` + slug_or_id
+			output, err := json.Marshal(msg)
+			if err != nil {
+				http.Error(w, err.Error(), 500)
+				return
+			}
+			w.Header().Set("content-type", "application/json")
+			w.WriteHeader(404)
+			w.Write(output)
+			return
+		}
+	} else { // got slug
+		id = getters.GetIdBySlug(slug_or_id)
+		if id == -1 {
+			var msg models.ResponseMessage
+			msg.Message = `Can't find post thread by slug: ` + slug_or_id
+			output, err := json.Marshal(msg)
+			if err != nil {
+				http.Error(w, err.Error(), 500)
+				return
+			}
+			w.Header().Set("content-type", "application/json")
+			w.WriteHeader(404)
+			w.Write(output)
+			return
+		}
+	}
+
+	var req = `SELECT * FROM posts WHERE thread = ` + strconv.Itoa(id) + ` `
+
+	if sort == "flat" ||  sort == "" {
+		if limit != "" {
+			if desc == "false" || desc == "" {
+				if since != "" {
+					req += `AND id >` + since + ` ORDER BY id ASC LIMIT ` + limit
+				} else {
+					req += `ORDER BY id LIMIT ` + limit
+				}
+			} else {
+				if since != "" {
+					req += `AND id <` + since + ` ORDER BY id DESC LIMIT ` + limit
+				} else {
+					req += `ORDER BY id DESC LIMIT ` + limit
+				}
+			}
+		} else {
+			if desc == "false" || desc == "" {
+				if since != "" {
+					req += `AND id >` + since + ` ORDER BY id ASC`
+				} else {
+					req += `ORDER BY id`
+				}
+			} else {
+				if since != "" {
+					req += `AND id <` + since + ` ORDER BY id DESC`
+				} else {
+					req += `ORDER BY id DESC`
+				}
+			}
+		}
+	} else if sort == "tree" {
+		if limit != "" {
+			if desc == "false" || desc == "" {
+				if since != "" {
+					req += `AND id >` + since + ` ORDER BY path ASC LIMIT ` + limit
+				} else {
+					req += `ORDER BY path LIMIT ` + limit
+				}
+			} else {
+				if since != "" {
+					req += `AND id <` + since + ` ORDER BY path DESC LIMIT ` + limit
+				} else {
+					req += `ORDER BY path DESC LIMIT ` + limit
+				}
+			}
+		} else {
+			if desc == "false" || desc == "" {
+				if since != "" {
+					req += `AND id >` + since + ` ORDER BY path ASC`
+				} else {
+					req += `ORDER BY path`
+				}
+			} else {
+				if since != "" {
+					req += `AND id <` + since + ` ORDER BY path DESC`
+				} else {
+					req += `ORDER BY path DESC`
+				}
+			}
+		}
+	} else if sort == "parent_tree" {
+
+	}
+	log.Println(`_________________________________________`)
+	log.Println(limit)
+	log.Println(req)
+	log.Println(`_________________________________________`)
+	var posts = make([]models.Post, 0)
+	rows, err := db.Query(req)
+	if err != nil {
+		http.Error(w, err.Error(), 500)
+		return
+	}
+	for rows.Next() {
+		var result models.Post
+		rows.Scan(&result.Id, &result.Author, &result.Created, &result.Forum,
+			&result.IsEdited, &result.Message, &result.Parent, &result.Thread, &result.Path)
+		//if err != nil {
+		//	http.Error(w, err.Error(), 500)
+		//	return
+		//}
+		posts = append(posts, result)
+	}
+	output, err := json.Marshal(posts)
 	if err != nil {
 		http.Error(w, err.Error(), 500)
 		return
