@@ -221,7 +221,7 @@ func UpdatePost(w http.ResponseWriter, request *http.Request) {
 		w.Write(output)
 		return
 	} else {
-		if post.Message != "" {
+		if post.Message != "" && post.Message != result.Message {
 			err = db.QueryRow(`UPDATE posts SET message = $1, isEdited = true WHERE id = $2 RETURNING isEdited`, post.Message, id).Scan(&result.IsEdited)
 			result.Message = post.Message
 		}
