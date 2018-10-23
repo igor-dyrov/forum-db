@@ -33,6 +33,7 @@ func main() {
 	mux.HandleFunc(`/api/thread/{slug_or_id}/details`, handlers.UpdateThread).Methods("POST")
 
 	mux.HandleFunc(`/api/post/{id}/details`, handlers.GetPost).Methods("GET")
+	mux.HandleFunc(`/api/post/{id}/details`, handlers.UpdatePost).Methods("POST")
 
 	logHandler := logMiddleware(mux)
 
