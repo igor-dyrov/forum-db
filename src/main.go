@@ -6,6 +6,7 @@ import (
 	"fmt"
 	mux2 "github.com/gorilla/mux"
 	"./handlers"
+	"./getters"
 )
 
 func logMiddleware(next http.Handler) http.Handler {
@@ -16,6 +17,7 @@ func logMiddleware(next http.Handler) http.Handler {
 }
 
 func main() {
+	getters.GetPathById(0)
 	mux := mux2.NewRouter()
 
 	mux.HandleFunc(`/api/user/{nick}/create`, handlers.CreateUser).Methods("POST")

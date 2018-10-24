@@ -10,6 +10,7 @@ import (
 	"github.com/gorilla/mux"
 	"strconv"
 	"log"
+	"github.com/lib/pq"
 )
 
 func CreateThread(w http.ResponseWriter, request *http.Request) {
@@ -361,13 +362,13 @@ func GetThreadPosts(w http.ResponseWriter, request *http.Request) {
 		if limit != "" {
 			if desc == "false" || desc == "" {
 				if since != "" {
-					req += `AND id >` + since + ` ORDER BY path ASC LIMIT ` + limit
+					req += `AND path > (SELECT path FROM posts WHERE id = ` + since + `) ORDER BY path ASC LIMIT ` + limit
 				} else {
 					req += `ORDER BY path LIMIT ` + limit
 				}
 			} else {
 				if since != "" {
-					req += `AND id <` + since + ` ORDER BY path DESC LIMIT ` + limit
+					req += `AND id < (SELECT path FROM posts WHERE id = ` + since + `) ORDER BY path DESC LIMIT ` + limit
 				} else {
 					req += `ORDER BY path DESC LIMIT ` + limit
 				}
@@ -375,13 +376,13 @@ func GetThreadPosts(w http.ResponseWriter, request *http.Request) {
 		} else {
 			if desc == "false" || desc == "" {
 				if since != "" {
-					req += `AND id >` + since + ` ORDER BY path ASC`
+					req += `AND id > (SELECT path FROM posts WHERE id = ` + since + `) ORDER BY path ASC`
 				} else {
-					req += `ORDER BY path`
+					req += `ORDER BY path ASC`
 				}
 			} else {
 				if since != "" {
-					req += `AND id <` + since + ` ORDER BY path DESC`
+					req += `AND id < (SELECT path FROM posts WHERE id = ` + since + `) ORDER BY path DESC`
 				} else {
 					req += `ORDER BY path DESC`
 				}
@@ -403,7 +404,7 @@ func GetThreadPosts(w http.ResponseWriter, request *http.Request) {
 	for rows.Next() {
 		var result models.Post
 		rows.Scan(&result.Id, &result.Author, &result.Created, &result.Forum,
-			&result.IsEdited, &result.Message, &result.Parent, &result.Thread, &result.Path)
+			&result.IsEdited, &result.Message, &result.Parent, &result.Thread, pq.Array(&result.Path))
 		//if err != nil {
 		//	http.Error(w, err.Error(), 500)
 		//	return

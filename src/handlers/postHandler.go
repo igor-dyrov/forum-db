@@ -10,6 +10,8 @@ import (
 	"github.com/gorilla/mux"
 	"strconv"
 	"time"
+	"github.com/lib/pq"
+	"strings"
 )
 
 func CreatePosts(w http.ResponseWriter, request *http.Request) {
@@ -68,8 +70,10 @@ func CreatePosts(w http.ResponseWriter, request *http.Request) {
 			return
 		}
 	}
+	var maxId int = 0
+	err = db.QueryRow(`SELECT MAX(id) FROM posts`).Scan(&maxId)
 	err = nil
-
+	maxId++
 	for i := range posts {
 		posts[i].Forum = forum
 		posts[i].Thread = Thread
@@ -100,8 +104,13 @@ func CreatePosts(w http.ResponseWriter, request *http.Request) {
 			w.Write(output)
 			return
 		}
-		db.QueryRow(`INSERT INTO posts (author, created, forum, message, thread, parent) VALUES ($1, $2, $3, $4, $5, $6) RETURNING id`,
-			posts[i].Author, posts[i].Created, posts[i].Forum, posts[i].Message, posts[i].Thread, posts[i].Parent).Scan(&posts[i].Id)
+		var parentPath = getters.GetPathById(posts[i].Parent)
+		for j := range parentPath {
+			posts[i].Path = append(posts[i].Path, parentPath[j])
+		}
+		posts[i].Path = append(posts[i].Path, maxId + i)
+		db.QueryRow(`INSERT INTO posts (author, created, forum, message, thread, parent, path) VALUES ($1, $2, $3, $4, $5, $6, $7) RETURNING id`,
+			posts[i].Author, posts[i].Created, posts[i].Forum, posts[i].Message, posts[i].Thread, posts[i].Parent, pq.Array(posts[i].Path)).Scan(&posts[i].Id)
 		if err != nil {
 			http.Error(w, err.Error(), 500)
 			return
@@ -114,7 +123,8 @@ func CreatePosts(w http.ResponseWriter, request *http.Request) {
 		post.Thread = Thread
 		post.Forum = forum
 		post.Created = curTime
-		db.QueryRow(`INSERT INTO posts (forum, thread) VALUES($1, $2) RETURNING id`, post.Forum, post.Thread).Scan(&post.Id)
+		post.Path = append(post.Path, maxId)
+		db.QueryRow(`INSERT INTO posts (forum, thread, path) VALUES($1, $2, $3) RETURNING id`, post.Forum, post.Thread, pq.Array(post.Path)).Scan(&post.Id)
 		if err != nil {
 			http.Error(w, err.Error(), 500)
 			return
@@ -149,14 +159,11 @@ func GetPost(w http.ResponseWriter, request *http.Request) {
 		http.Error(w, err.Error(), 500)
 		return
 	}
+	var gotPath string
 	for rows.Next()  {
 		err = rows.Scan(&result.Id, &result.Author, &result.Created, &result.Forum,
-			&result.IsEdited, &result.Message, &result.Parent, &result.Thread, &result.Path)
+			&result.IsEdited, &result.Message, &result.Parent, &result.Thread, &gotPath)
 	}
-	//if err != nil{
-	//	http.Error(w, err.Error(), 500)
-	//	return
-	//}
 	if result.Id == -1 {
 		var msg models.ResponseMessage
 		msg.Message = `Can't find post post by id: ` + id
@@ -169,6 +176,13 @@ func GetPost(w http.ResponseWriter, request *http.Request) {
 		w.WriteHeader(404)
 		w.Write(output)
 		return
+	}
+	if len(gotPath) > 2 {
+		IDs := strings.Split(gotPath[1:len(gotPath)-1], ",")
+		for index := range IDs {
+			item, _ := strconv.Atoi(IDs[index])
+			result.Path = append(result.Path, item)
+		}
 	}
 	var Post models.PostResponse
 	Post.Post = result
