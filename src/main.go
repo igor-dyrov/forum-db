@@ -28,6 +28,7 @@ func main() {
 	mux.HandleFunc(`/api/forum/{slug}/details`, handlers.GetForum).Methods("GET")
 	mux.HandleFunc(`/api/forum/{slug}/create`, handlers.CreateThread).Methods("POST")
 	mux.HandleFunc(`/api/forum/{slug}/threads`, handlers.GetThreads).Methods("GET")
+	mux.HandleFunc(`/api/forum/{slug}/users`, handlers.GetThreadUsers).Methods("GET")
 
 	mux.HandleFunc(`/api/thread/{slug_or_id}/create`, handlers.CreatePosts).Methods("POST")
 	mux.HandleFunc(`/api/thread/{slug_or_id}/vote`, handlers.CreateVote).Methods("POST")

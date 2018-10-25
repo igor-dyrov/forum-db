@@ -8,6 +8,7 @@ import (
 	"github.com/gorilla/mux"
 	"../getters"
 	"../common"
+	"database/sql"
 )
 
 func CreateUser(w http.ResponseWriter, request *http.Request) {
@@ -149,5 +150,77 @@ func UpdateUser(w http.ResponseWriter, request *http.Request) {
 		http.Error(w, err.Error(), 500)
 		return
 	}
+	w.Write(output)
+}
+
+func GetThreadUsers(w http.ResponseWriter, request *http.Request) {
+	var slug = mux.Vars(request)["slug"]
+	limit := request.URL.Query().Get("limit")
+	since := request.URL.Query().Get("since")
+	desc := request.URL.Query().Get("desc")
+
+	db := common.GetDB()
+	var rows *sql.Rows
+	var err error
+	if desc == "false"  || desc == "" {
+		if since == "" {
+			if limit == "" {
+				rows, err = db.Query("SELECT DISTINCT u.* FROM users AS u JOIN threads AS t ON u.nickname = t.author " +
+					"JOIN posts AS p ON u.nickname = p.author WHERE t.forum = $1 AND p.forum = $1 ORDER BY u.nickname", slug)
+			} else {
+				rows, err = db.Query("SELECT DISTINCT u.* FROM users AS u JOIN threads AS t ON u.nickname = t.author " +
+					"JOIN posts AS p ON u.nickname = p.author WHERE t.forum = $1 AND p.forum = $1 ORDER BY u.nickname LIMIT $2", slug, limit)
+			}
+		} else {
+			if limit == "" {
+				rows, err = db.Query("SELECT DISTINCT u.* FROM users AS u JOIN threads AS t ON u.nickname = t.author " +
+					"JOIN posts AS p ON u.nickname = p.author WHERE t.forum = $1 AND p.forum = $1 AND u.nickname > $2 ORDER BY u.nickname", slug, since)
+			} else {
+				rows, err = db.Query("SELECT DISTINCT u.* FROM users AS u JOIN threads AS t ON u.nickname = t.author " +
+					"JOIN posts AS p ON u.nickname = p.author WHERE t.forum = $1 AND p.forum = $1 AND u.nickname > $3 ORDER BY u.nickname LIMIT $2", slug, limit, since)
+			}
+		}
+	} else {
+		if since == "" {
+			if limit == "" {
+				rows, err = db.Query("SELECT DISTINCT u.* FROM users AS u JOIN threads AS t ON u.nickname = t.author " +
+					"JOIN posts AS p ON u.nickname = p.author WHERE t.forum = $1 AND p.forum = $1 ORDER BY u.nickname DESC", slug)
+			} else {
+				rows, err = db.Query("SELECT DISTINCT u.* FROM users AS u JOIN threads AS t ON u.nickname = t.author " +
+					"JOIN posts AS p ON u.nickname = p.author WHERE t.forum = $1 AND p.forum = $1 ORDER BY u.nickname DESC LIMIT $2", slug, limit)
+			}
+		} else {
+			if limit == "" {
+				rows, err = db.Query("SELECT DISTINCT u.* FROM users AS u JOIN threads AS t ON u.nickname = t.author " +
+					"JOIN posts AS p ON u.nickname = p.author WHERE t.forum = $1 AND p.forum = $1 AND u.nickname < $2 ORDER BY u.nickname DESC", slug, since)
+			} else {
+				rows, err = db.Query("SELECT DISTINCT u.* FROM users AS u JOIN threads AS t ON u.nickname = t.author " +
+					"JOIN posts AS p ON u.nickname = p.author WHERE t.forum = $1 AND p.forum = $1 AND u.nickname < $3 ORDER BY u.nickname DESC LIMIT $2", slug, limit, since)
+			}
+		}
+	}
+	//rows, err := db.Query("SELECT DISTINCT u.* FROM users AS u JOIN threads AS t ON u.nickname = t.author " +
+	//	"JOIN posts AS p ON u.nickname = p.author WHERE t.forum = $1 AND p.forum = $1 ORDER BY u.nickname LIMIT $2", slug, limit)
+	if err != nil {
+		http.Error(w, err.Error(), 500)
+		return
+	}
+	users := make([]models.User, 0)
+	for rows.Next() {
+		var gotUser models.User
+		err = rows.Scan(&gotUser.About, &gotUser.Email, &gotUser.Fullname, &gotUser.Nickname, &gotUser.ID)
+		if err != nil {
+			http.Error(w, err.Error(), 500)
+			return
+		}
+		users = append(users, gotUser)
+	}
+	output, err := json.Marshal(users)
+	if err != nil {
+		http.Error(w, err.Error(), 500)
+		return
+	}
+	w.Header().Set("content-type", "application/json")
+	w.WriteHeader(200)
 	w.Write(output)
 }
