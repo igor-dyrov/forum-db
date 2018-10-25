@@ -286,7 +286,6 @@ func UpdateThread(w http.ResponseWriter, request *http.Request) {
 }
 
 func HandlePostRows(rows *sql.Rows, posts *[]models.Post) {
-	//var posts []models.Post
 	for rows.Next() {
 		var result models.Post
 		var gotPath string
@@ -299,7 +298,6 @@ func HandlePostRows(rows *sql.Rows, posts *[]models.Post) {
 		}
 		*posts = append(*posts, result)
 	}
-	//*slice = posts
 }
 
 func GetThreadPosts(w http.ResponseWriter, request *http.Request) {
