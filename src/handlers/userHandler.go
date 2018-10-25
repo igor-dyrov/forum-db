@@ -181,25 +181,17 @@ func GetThreadUsers(w http.ResponseWriter, request *http.Request) {
 			if limit == "" {
 				rows, err = db.Query("SELECT DISTINCT u.* FROM users AS u JOIN posts AS p ON u.nickname = p.author WHERE p.forum = $1 UNION " +
 				"SELECT DISTINCT u.* FROM users AS u JOIN threads AS t ON u.nickname = t.author WHERE t.forum = $1 ORDER BY nickname ASC", slug)
-				//rows, err = db.Query("SELECT DISTINCT u.* FROM users AS u JOIN threads AS t ON u.nickname = t.author " +
-				//	"JOIN posts AS p ON u.nickname = p.author WHERE t.forum = $1 AND p.forum = $1 ORDER BY u.nickname", slug)
 			} else {
 				rows, err = db.Query("SELECT DISTINCT u.* FROM users AS u JOIN posts AS p ON u.nickname = p.author WHERE p.forum = $1 UNION " +
 					"SELECT DISTINCT u.* FROM users AS u JOIN threads AS t ON u.nickname = t.author WHERE t.forum = $1 ORDER BY nickname ASC LIMIT $2", slug, limit)
-				//rows, err = db.Query("SELECT DISTINCT u.* FROM users AS u JOIN threads AS t ON u.nickname = t.author " +
-				//	"JOIN posts AS p ON u.nickname = p.author WHERE t.forum = $1 AND p.forum = $1 ORDER BY u.nickname LIMIT $2", slug, limit)
 			}
 		} else {
 			if limit == "" {
 				rows, err = db.Query("SELECT DISTINCT u.* FROM users AS u JOIN posts AS p ON u.nickname = p.author WHERE p.forum = $1 AND u.nickname > $2 UNION " +
 					"SELECT DISTINCT u.* FROM users AS u JOIN threads AS t ON u.nickname = t.author WHERE t.forum = $1 AND u.nickname > $2 ORDER BY nickname ASC", slug, since)
-				//rows, err = db.Query("SELECT DISTINCT u.* FROM users AS u JOIN threads AS t ON u.nickname = t.author " +
-				//	"JOIN posts AS p ON u.nickname = p.author WHERE t.forum = $1 AND p.forum = $1 AND u.nickname > $2 ORDER BY u.nickname", slug, since)
 			} else {
 				rows, err = db.Query("SELECT DISTINCT u.* FROM users AS u JOIN posts AS p ON u.nickname = p.author WHERE p.forum = $1 AND u.nickname > $2 UNION " +
 					"SELECT DISTINCT u.* FROM users AS u JOIN threads AS t ON u.nickname = t.author WHERE t.forum = $1 AND u.nickname > $2 ORDER BY nickname ASC LIMIT $3", slug, since, limit)
-				//rows, err = db.Query("SELECT DISTINCT u.* FROM users AS u JOIN threads AS t ON u.nickname = t.author " +
-				//	"JOIN posts AS p ON u.nickname = p.author WHERE t.forum = $1 AND p.forum = $1 AND u.nickname > $3 ORDER BY u.nickname LIMIT $2", slug, limit, since)
 			}
 		}
 	} else if desc == "true" {
@@ -207,25 +199,17 @@ func GetThreadUsers(w http.ResponseWriter, request *http.Request) {
 			if limit == "" {
 				rows, err = db.Query("SELECT DISTINCT u.* FROM users AS u JOIN posts AS p ON u.nickname = p.author WHERE p.forum = $1 UNION " +
 					"SELECT DISTINCT u.* FROM users AS u JOIN threads AS t ON u.nickname = t.author WHERE t.forum = $1 ORDER BY nickname DESC", slug)
-				//rows, err = db.Query("SELECT DISTINCT u.* FROM users AS u JOIN threads AS t ON u.nickname = t.author " +
-				//	"JOIN posts AS p ON u.nickname = p.author WHERE t.forum = $1 AND p.forum = $1 ORDER BY u.nickname", slug)
 			} else {
 				rows, err = db.Query("SELECT DISTINCT u.* FROM users AS u JOIN posts AS p ON u.nickname = p.author WHERE p.forum = $1 UNION " +
 					"SELECT DISTINCT u.* FROM users AS u JOIN threads AS t ON u.nickname = t.author WHERE t.forum = $1 ORDER BY nickname DESC LIMIT $2", slug, limit)
-				//rows, err = db.Query("SELECT DISTINCT u.* FROM users AS u JOIN threads AS t ON u.nickname = t.author " +
-				//	"JOIN posts AS p ON u.nickname = p.author WHERE t.forum = $1 AND p.forum = $1 ORDER BY u.nickname LIMIT $2", slug, limit)
 			}
 		} else {
 			if limit == "" {
 				rows, err = db.Query("SELECT DISTINCT u.* FROM users AS u JOIN posts AS p ON u.nickname = p.author WHERE p.forum = $1 AND u.nickname < $2 UNION " +
 					"SELECT DISTINCT u.* FROM users AS u JOIN threads AS t ON u.nickname = t.author WHERE t.forum = $1 AND u.nickname < $2 ORDER BY nickname DESC", slug, since)
-				//rows, err = db.Query("SELECT DISTINCT u.* FROM users AS u JOIN threads AS t ON u.nickname = t.author " +
-				//	"JOIN posts AS p ON u.nickname = p.author WHERE t.forum = $1 AND p.forum = $1 AND u.nickname > $2 ORDER BY u.nickname", slug, since)
 			} else {
 				rows, err = db.Query("SELECT DISTINCT u.* FROM users AS u JOIN posts AS p ON u.nickname = p.author WHERE p.forum = $1 AND u.nickname < $2 UNION " +
 					"SELECT DISTINCT u.* FROM users AS u JOIN threads AS t ON u.nickname = t.author WHERE t.forum = $1 AND u.nickname < $2 ORDER BY nickname DESC LIMIT $3", slug, since, limit)
-				//rows, err = db.Query("SELECT DISTINCT u.* FROM users AS u JOIN threads AS t ON u.nickname = t.author " +
-				//	"JOIN posts AS p ON u.nickname = p.author WHERE t.forum = $1 AND p.forum = $1 AND u.nickname > $3 ORDER BY u.nickname LIMIT $2", slug, limit, since)
 			}
 		}
 	}

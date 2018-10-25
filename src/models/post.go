@@ -14,6 +14,9 @@ type Post struct {
 	IsEdited bool `json:"isEdited"`
 }
 
-type PostResponse struct {
-	Post Post `json:"post"`
+type PostDetails struct {
+	Post *Post `json:"post"`
+	Thread *Thread `json:"thread"`
+	Forum *Forum `json:"forum"`
+	Author *User `json:"author"`
 }

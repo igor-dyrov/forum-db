@@ -35,6 +35,23 @@ func GetUserByNickOrEmail(nickname string, email string) (bool, []models.User) {
 	return false, result
 }
 
+func GetUserByNick(nickname string) models.User {
+	db := common.GetDB()
+
+	rows, _ := db.Query(`SELECT * from users WHERE nickname = $1`, nickname)
+	var gotUser models.User
+	//if err != nil {
+	//	return result
+	//}
+
+	for rows.Next() {
+		rows.Scan(&gotUser.About, &gotUser.Email, &gotUser.Fullname, &gotUser.Nickname, &gotUser.ID)
+	}
+
+
+	return gotUser
+}
+
 func GetNickByEmail(email string) string {
 	db := common.GetDB()
 	rows, err := db.Query("SELECT nickname from users WHERE email = $1", email)
@@ -369,4 +386,16 @@ func GetParentPosts(id int) []models.Post {
 		posts = append(posts, result)
 	}
 	return posts
+}
+
+func GetThreadById(id int) models.Thread {
+	db := common.GetDB()
+	var result models.Thread
+	rows, _ := db.Query(`SELECT * FROM threads WHERE id = $1`, id)
+
+	for rows.Next() {
+		rows.Scan(&result.ID, &result.Slug, &result.Created, &result.Message, &result.Title, &result.Author, &result.Forum, &result.Votes)
+
+	}
+	return result
 }

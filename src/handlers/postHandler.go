@@ -151,6 +151,9 @@ func CreatePosts(w http.ResponseWriter, request *http.Request) {
 
 func GetPost(w http.ResponseWriter, request *http.Request) {
 	var id = mux.Vars(request)["id"]
+	related := request.URL.Query().Get("related")
+	additions := strings.Split(related, ",")
+	PostInfo := new(models.PostDetails)
 	db := common.GetDB()
 	var result models.Post
 	result.Id = -1
@@ -177,16 +180,33 @@ func GetPost(w http.ResponseWriter, request *http.Request) {
 		w.Write(output)
 		return
 	}
-	if len(gotPath) > 2 {
+	//if len(gotPath) > 2 {
 		IDs := strings.Split(gotPath[1:len(gotPath)-1], ",")
 		for index := range IDs {
 			item, _ := strconv.Atoi(IDs[index])
 			result.Path = append(result.Path, item)
 		}
+	//}
+	PostInfo.Post = &result
+	var tempUser models.User
+	var tempThread models.Thread
+	var tempForum models.Forum
+	for _, info := range additions  {
+		if info == "user" {
+			tempUser = getters.GetUserByNick(result.Author)
+			PostInfo.Author = &tempUser
+		}
+		if info == "thread" {
+			tempThread = getters.GetThreadById(PostInfo.Post.Thread)
+			PostInfo.Thread = &tempThread
+		}
+		if info == "forum" {
+			tempForum = getters.GetForumBySlug(PostInfo.Post.Forum)
+			PostInfo.Forum = &tempForum
+		}
 	}
-	var Post models.PostResponse
-	Post.Post = result
-	output, err := json.Marshal(Post)
+	var output []byte
+	output, err = json.Marshal(PostInfo)
 	if err != nil {
 		http.Error(w, err.Error(), 500)
 		return
