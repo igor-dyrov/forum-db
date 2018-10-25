@@ -334,7 +334,7 @@ func GetPathById(id int) []int {
 	var result []int
 	var gotPath string
 	err := db.QueryRow(`SELECT path FROM posts WHERE id = $1`, id).Scan(&gotPath)
-	if len(gotPath) > 2 {
+	if len(gotPath) > 0 {
 		IDs := strings.Split(gotPath[1:len(gotPath)-1], ",")
 		for index := range IDs {
 			item, _ := strconv.Atoi(IDs[index])
@@ -350,7 +350,7 @@ func GetPathById(id int) []int {
 func GetParentPosts(id int) []models.Post {
 	db := common.GetDB()
 	var posts []models.Post
-	rows, err := db.Query(`SELECT * FROM posts WHERE parent = 0 AND thread = $1 ORDER BY id ASC`,id)
+	rows, err := db.Query(`SELECT * FROM posts WHERE parent = 0 AND thread = $1 ORDER BY id`,id)
 	if err != nil {
 		return posts
 	}

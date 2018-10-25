@@ -10,7 +10,8 @@ import (
 	"github.com/gorilla/mux"
 	"strconv"
 	"log"
-	"github.com/lib/pq"
+	"strings"
+	"database/sql"
 )
 
 func CreateThread(w http.ResponseWriter, request *http.Request) {
@@ -284,10 +285,25 @@ func UpdateThread(w http.ResponseWriter, request *http.Request) {
 	w.Write(output)
 }
 
+func HandlePostRows(rows *sql.Rows, posts *[]models.Post) {
+	//var posts []models.Post
+	for rows.Next() {
+		var result models.Post
+		var gotPath string
+		rows.Scan(&result.Id, &result.Author, &result.Created, &result.Forum,
+			&result.IsEdited, &result.Message, &result.Parent, &result.Thread, &gotPath)
+		IDs := strings.Split(gotPath[1:len(gotPath)-1], ",")
+		for index := range IDs {
+			item, _ := strconv.Atoi(IDs[index])
+			result.Path = append(result.Path, item)
+		}
+		*posts = append(*posts, result)
+	}
+	//*slice = posts
+}
 
 func GetThreadPosts(w http.ResponseWriter, request *http.Request) {
 	var slug_or_id = mux.Vars(request)["slug_or_id"]
-	log.Println(`____________________________________`)
 	limit := request.URL.Query().Get("limit")
 	since := request.URL.Query().Get("since")
 	sort := request.URL.Query().Get("sort")
@@ -326,8 +342,8 @@ func GetThreadPosts(w http.ResponseWriter, request *http.Request) {
 		}
 	}
 
+	var posts = make([]models.Post, 0)
 	var req = `SELECT * FROM posts WHERE thread = ` + strconv.Itoa(id) + ` `
-
 	if sort == "flat" ||  sort == "" {
 		if limit != "" {
 			if desc == "false" || desc == "" {
@@ -358,58 +374,121 @@ func GetThreadPosts(w http.ResponseWriter, request *http.Request) {
 				}
 			}
 		}
-	} else if sort == "tree" {
+		rows, err := db.Query(req)
+		if err != nil {
+			http.Error(w, err.Error(), 500)
+			return
+		}
+		HandlePostRows(rows, &posts)
+		output, err := json.Marshal(posts)
+		if err != nil {
+			http.Error(w, err.Error(), 500)
+			return
+		}
+		w.Header().Set("content-type", "application/json")
+		w.WriteHeader(200)
+		w.Write(output)
+		return
+	}
+	var rows *sql.Rows
+	if sort == "tree" {
 		if limit != "" {
 			if desc == "false" || desc == "" {
 				if since != "" {
-					req += `AND path > (SELECT path FROM posts WHERE id = ` + since + `) ORDER BY path ASC LIMIT ` + limit
+					rows, err = db.Query(`SELECT p1.* FROM posts AS p1 JOIN posts AS p2 ON p1.path > p2.path AND p2.id = $2 
+		WHERE p1.thread = $1 ORDER BY path ASC LIMIT $3`, id, since, limit)
 				} else {
-					req += `ORDER BY path LIMIT ` + limit
+					rows, err = db.Query(`SELECT * FROM posts WHERE thread = $1 ORDER BY path LIMIT $2`, id, limit)
 				}
 			} else {
 				if since != "" {
-					req += `AND id < (SELECT path FROM posts WHERE id = ` + since + `) ORDER BY path DESC LIMIT ` + limit
+					rows, err = db.Query(`SELECT p1.* FROM posts AS p1 JOIN posts AS p2 ON p1.path < p2.path AND p2.id = $2 
+		WHERE p1.thread = $1 ORDER BY path DESC LIMIT $3`, id, since, limit)
 				} else {
+					rows, err = db.Query(`SELECT * FROM posts WHERE thread = $1 ORDER BY path DESC LIMIT $2`, id, limit)
 					req += `ORDER BY path DESC LIMIT ` + limit
 				}
 			}
 		} else {
 			if desc == "false" || desc == "" {
 				if since != "" {
-					req += `AND id > (SELECT path FROM posts WHERE id = ` + since + `) ORDER BY path ASC`
+					rows, err = db.Query(`SELECT p1.* FROM posts AS p1 JOIN posts AS p2 ON p1.path > p2.path AND p2.id = $2 
+		WHERE p1.thread = $1 ORDER BY path ASC`, id, since)
 				} else {
-					req += `ORDER BY path ASC`
+					rows, err = db.Query(`SELECT * FROM posts WHERE thread = $1 ORDER BY path ASC`, id)
 				}
 			} else {
 				if since != "" {
-					req += `AND id < (SELECT path FROM posts WHERE id = ` + since + `) ORDER BY path DESC`
+					rows, err = db.Query(`SELECT p1.* FROM posts AS p1 JOIN posts AS p2 ON p1.path > p2.path AND p2.id = $2 
+		WHERE p1.thread = $1 ORDER BY path DESC`, id, since)
 				} else {
-					req += `ORDER BY path DESC`
+					rows, err = db.Query(`SELECT * FROM posts WHERE thread = $1 ORDER BY path DESC`, id)
 				}
 			}
 		}
+		if err != nil {
+			http.Error(w, err.Error(), 500)
+			return
+		}
+		HandlePostRows(rows, &posts)
 	} else if sort == "parent_tree" {
-
-	}
-	log.Println(`_________________________________________`)
-	log.Println(limit)
-	log.Println(req)
-	log.Println(`_________________________________________`)
-	var posts = make([]models.Post, 0)
-	rows, err := db.Query(req)
-	if err != nil {
-		http.Error(w, err.Error(), 500)
-		return
-	}
-	for rows.Next() {
-		var result models.Post
-		rows.Scan(&result.Id, &result.Author, &result.Created, &result.Forum,
-			&result.IsEdited, &result.Message, &result.Parent, &result.Thread, pq.Array(&result.Path))
-		//if err != nil {
-		//	http.Error(w, err.Error(), 500)
-		//	return
-		//}
-		posts = append(posts, result)
+		parentPosts := getters.GetParentPosts(id)
+		pageSize, _ := strconv.Atoi(limit)
+		if desc == "false" || desc == "" {
+			if since == "" {
+				for i := range parentPosts {
+					if i < pageSize {
+						rows, err := db.Query("SELECT * FROM posts WHERE thread = $1 AND path[1] = $2 ORDER BY path ASC, id ASC", id, parentPosts[i].Id)
+						if err != nil {
+							http.Error(w, err.Error(), 500)
+							return
+						}
+						HandlePostRows(rows, &posts)
+					}
+				}
+			} else {
+				for i := range parentPosts {
+					if i <= pageSize {
+						rows, err := db.Query("SELECT p1.* FROM posts AS p1 JOIN posts AS p2 ON p1.thread = $1 AND p1.path[1] > p2.path[1]" +
+							" AND p2.id = $2 WHERE p1.path[1] = $3 ORDER BY p1.path ASC, p1.id ASC", id, since, parentPosts[i].Id)
+						if err != nil {
+							http.Error(w, err.Error(), 500)
+							return
+						}
+						HandlePostRows(rows, &posts)
+					}
+				}
+			}
+		} else if desc == "true" {
+			if since == "" {
+				for i := range parentPosts {
+					if i < pageSize {
+						var lastParent = parentPosts[len(parentPosts) - 1 - i].Id
+						rows, err := db.Query("SELECT * FROM posts WHERE thread = $1 AND path[1] = $2 ORDER BY path ASC, id ASC", id, lastParent)
+						log.Println(limit, since, sort, desc)
+						log.Println("here")
+						if err != nil {
+							http.Error(w, err.Error(), 500)
+							return
+						}
+						HandlePostRows(rows, &posts)
+					}
+				}
+			} else {
+				for i := range parentPosts {
+					if i <= pageSize {
+						var lastParent = parentPosts[len(parentPosts) - 1 - i].Id
+						rows, err := db.Query("SELECT p1.* FROM posts AS p1 JOIN posts AS p2 ON p1.thread = $1 AND p1.path[1] < p2.path[1]" +
+							" AND p2.id = $2 WHERE p1.path[1] = $3 ORDER BY p1.path ASC, p1.id ASC", id, since, lastParent)
+						if err != nil {
+							http.Error(w, err.Error(), 500)
+							return
+						}
+						HandlePostRows(rows, &posts)
+					}
+				}
+			}
+		}
 	}
 	output, err := json.Marshal(posts)
 	if err != nil {
