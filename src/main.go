@@ -40,6 +40,9 @@ func main() {
 	mux.HandleFunc(`/api/post/{id}/details`, handlers.GetPost).Methods("GET")
 	mux.HandleFunc(`/api/post/{id}/details`, handlers.UpdatePost).Methods("POST")
 
+	mux.HandleFunc(`/api/service/status`, handlers.GetStatus).Methods("GET")
+	mux.HandleFunc(`/api/service/clear`, handlers.ClearAll).Methods("POST")
+
 	logHandler := logMiddleware(mux)
 
 	log.Fatal(http.ListenAndServe(":5000", logHandler))

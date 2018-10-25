@@ -31,7 +31,7 @@ func CreatePosts(w http.ResponseWriter, request *http.Request) {
 	var slug_or_id = mux.Vars(request)["slug_or_id"]
 	db := common.GetDB()
 
-	id, err := strconv.Atoi(slug_or_id) //try to get id
+	id, err := strconv.Atoi(slug_or_id) //trying to get id
 	var forum string
 	if  err == nil { //got id
 		if !getters.ThreadExists(id) { //check user by id
