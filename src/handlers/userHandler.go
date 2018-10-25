@@ -159,6 +159,20 @@ func GetThreadUsers(w http.ResponseWriter, request *http.Request) {
 	since := request.URL.Query().Get("since")
 	desc := request.URL.Query().Get("desc")
 
+	if getters.GetForumBySlug(slug).Slug == "" {
+		var message models.ResponseMessage
+		message.Message = "Can`t find forum with slug: " + 	slug
+		output, err := json.Marshal(message)
+		if err != nil {
+			http.Error(w, err.Error(), 500)
+			return
+		}
+		w.Header().Set("content-type", "application/json")
+		w.WriteHeader(404)
+		w.Write(output)
+		return
+	}
+
 	db := common.GetDB()
 	var rows *sql.Rows
 	var err error
@@ -199,8 +213,6 @@ func GetThreadUsers(w http.ResponseWriter, request *http.Request) {
 			}
 		}
 	}
-	//rows, err := db.Query("SELECT DISTINCT u.* FROM users AS u JOIN threads AS t ON u.nickname = t.author " +
-	//	"JOIN posts AS p ON u.nickname = p.author WHERE t.forum = $1 AND p.forum = $1 ORDER BY u.nickname LIMIT $2", slug, limit)
 	if err != nil {
 		http.Error(w, err.Error(), 500)
 		return
