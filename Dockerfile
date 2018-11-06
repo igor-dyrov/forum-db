@@ -65,7 +65,7 @@ ENV PATH $GOROOT/bin:$GOPATH/bin:/usr/local/go/bin:$PATH
 
 USER root
 
-RUN cd ~ && mkdir Project5 && cd Project5
+RUN cd ~ && mkdir Project6 && cd Project6
 RUN git clone https://github.com/igor-dyrov/forum-db
 
 USER postgres
