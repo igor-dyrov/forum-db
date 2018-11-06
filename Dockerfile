@@ -1,4 +1,4 @@
-FROM ubuntu:16.04
+FROM ubuntu:18.04
 
 MAINTAINER Igor Dyrov
 
@@ -9,8 +9,8 @@ RUN apt-get -y update
 # Установка postgresql
 #
 RUN echo 1
-ENV PGVER 9.6
-RUN apt-get install -y postgresql-$PGVER
+ENV PGVER 10
+RUN apt-get install -y postgresql-$PGVER wget gnupg
 
 # Run the rest of the commands as the ``postgres`` user created by the ``postgres-$PGVER`` package when it was ``apt-get installed``
 USER postgres
@@ -24,6 +24,13 @@ RUN /etc/init.d/postgresql start &&\
 
 # Adjust PostgreSQL configuration so that remote connections to the
 # database are possible.
+USER root
+
+RUN echo deb http://apt.postgresql.org/pub/repos/apt/ xenial-pgdg main > /etc/apt/sources.list.d/pgdg.list
+RUN wget --quiet -O - https://www.postgresql.org/media/keys/ACCC4CF8.asc | apt-key add -
+
+USER postgres
+
 RUN echo "host all  all    0.0.0.0/0  md5" >> /etc/postgresql/$PGVER/main/pg_hba.conf
 
 # And add ``listen_addresses`` to ``/etc/postgresql/$PGVER/main/postgresql.conf``
@@ -65,12 +72,14 @@ ENV PATH $GOROOT/bin:$GOPATH/bin:/usr/local/go/bin:$PATH
 
 USER root
 
-RUN cd ~ && mkdir Project8 && cd Project8
+RUN cd ~ && mkdir Project1 && cd Project1
 RUN git clone https://github.com/igor-dyrov/forum-db
 
 USER postgres
 
-RUN /etc/init.d/postgresql start && psql -f ./forum-db/init.sql forum && /etc/init.d/postgresql stop
+RUN echo 1
+RUN /etc/init.d/postgresql start && psql -f ./forum-db/init.sql forum &&  psql -f ./forum-db/init.sql forum && /etc/init.d/postgresql stop
+#RUN /etc/init.d/postgresql start && psql -f ./forum-db/init.sql forum && /etc/init.d/postgresql stop
 
 USER root
 
@@ -84,4 +93,7 @@ EXPOSE 5000
 #
 # Запускаем PostgreSQL и сервер
 #
-CMD service postgresql start && go run forum-db/src/main.go
+
+USER postgres
+
+CMD service postgresql start && psql -f ./forum-db/init.sql && go run forum-db/src/main.go

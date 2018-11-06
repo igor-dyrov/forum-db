@@ -7,7 +7,6 @@ import (
 	mux2 "github.com/gorilla/mux"
 	"./handlers"
 	"./getters"
-	_ "github.com/lib/pq"
 )
 
 func logMiddleware(next http.Handler) http.Handler {
