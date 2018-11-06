@@ -10,7 +10,7 @@ RUN apt-get -y update
 #
 RUN echo 1
 ENV PGVER 10
-RUN apt-get install -y postgresql-$PGVER wget gnupg
+RUN apt-get install -y postgresql-$PGVER
 
 # Run the rest of the commands as the ``postgres`` user created by the ``postgres-$PGVER`` package when it was ``apt-get installed``
 USER postgres
@@ -24,10 +24,6 @@ RUN /etc/init.d/postgresql start &&\
 
 # Adjust PostgreSQL configuration so that remote connections to the
 # database are possible.
-USER root
-
-RUN echo deb http://apt.postgresql.org/pub/repos/apt/ xenial-pgdg main > /etc/apt/sources.list.d/pgdg.list
-RUN wget --quiet -O - https://www.postgresql.org/media/keys/ACCC4CF8.asc | apt-key add -
 
 USER postgres
 
@@ -72,16 +68,8 @@ ENV PATH $GOROOT/bin:$GOPATH/bin:/usr/local/go/bin:$PATH
 
 USER root
 
-RUN cd ~ && mkdir Project1 && cd Project1
+RUN cd ~ && mkdir Project2 && cd Project2
 RUN git clone https://github.com/igor-dyrov/forum-db
-
-USER postgres
-
-RUN echo 1
-RUN /etc/init.d/postgresql start && psql -f ./forum-db/init.sql forum &&  psql -f ./forum-db/init.sql forum && /etc/init.d/postgresql stop
-#RUN /etc/init.d/postgresql start && psql -f ./forum-db/init.sql forum && /etc/init.d/postgresql stop
-
-USER root
 
 RUN go get github.com/gorilla/mux
 RUN go get github.com/lib/pq
