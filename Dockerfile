@@ -64,18 +64,24 @@ ENV PATH $GOROOT/bin:$GOPATH/bin:/usr/local/go/bin:$PATH
 
 USER root
 
-RUN cd ~ && mkdir Project1 && cd Project1
+RUN cd ~ && mkdir Project2 && cd Project2
 RUN git clone https://github.com/igor-dyrov/forum-db
 
 USER postgres
 
 RUN /etc/init.d/postgresql start && psql -f ./forum-db/init.sql forum && /etc/init.d/postgresql stop
-RUN go run forum-db/src/main.go
+
+USER root
+
+RUN go get github.com/gorilla/mux
+RUN go get github.com/lib/pq
+RUN apt install curl -y
 
 # Объявлем порт сервера
 EXPOSE 5000
 
+
 #
 # Запускаем PostgreSQL и сервер
 #
-CMD service postgresql start && hello-server --scheme=http --port=5000 --host=0.0.0.0 --database=postgres://docker:docker@localhost/docker
+CMD service postgresql start && go run forum-db/src/main.go

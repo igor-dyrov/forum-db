@@ -12,7 +12,7 @@ var db *sql.DB
 
 const (
 	DB_USER     = "postgres"
-	DB_PASSWORD = "261097"
+	DB_PASSWORD = "docker"
 	DB_NAME     = "forum"
 )
 

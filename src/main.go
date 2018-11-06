@@ -46,5 +46,4 @@ func main() {
 	logHandler := logMiddleware(mux)
 
 	log.Fatal(http.ListenAndServe(":5000", logHandler))
-	fmt.Println('1')
 }
