@@ -1,4 +1,4 @@
-FROM ubuntu:18.04
+FROM ubuntu:16.04
 
 MAINTAINER Igor Dyrov
 
@@ -9,7 +9,7 @@ RUN apt-get -y update
 # Установка postgresql
 #
 RUN echo 1
-ENV PGVER 10
+ENV PGVER 9.6
 RUN apt-get install -y postgresql-$PGVER
 
 # Run the rest of the commands as the ``postgres`` user created by the ``postgres-$PGVER`` package when it was ``apt-get installed``
@@ -65,7 +65,7 @@ ENV PATH $GOROOT/bin:$GOPATH/bin:/usr/local/go/bin:$PATH
 
 USER root
 
-RUN cd ~ && mkdir Project7 && cd Project7
+RUN cd ~ && mkdir Project8 && cd Project8
 RUN git clone https://github.com/igor-dyrov/forum-db
 
 USER postgres
