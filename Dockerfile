@@ -19,7 +19,6 @@ USER postgres
 RUN /etc/init.d/postgresql start &&\
     psql --command "CREATE USER docker WITH SUPERUSER PASSWORD 'docker';" &&\
     createdb -O docker forum &&\
-    "CREATE EXTENSION CITEXT IF NOT EXISTS;" &&\
     /etc/init.d/postgresql stop
 
 # Adjust PostgreSQL configuration so that remote connections to the
@@ -65,7 +64,7 @@ ENV PATH $GOROOT/bin:$GOPATH/bin:/usr/local/go/bin:$PATH
 
 USER root
 
-RUN cd ~ && mkdir Project && cd Project
+RUN cd ~ && mkdir Project1 && cd Project1
 RUN git clone https://github.com/igor-dyrov/forum-db
 
 USER postgres
