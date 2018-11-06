@@ -7,6 +7,8 @@ import (
 	mux2 "github.com/gorilla/mux"
 	"./handlers"
 	"./getters"
+	_ "github.com/lib/pq"
+	"database/sql"
 )
 
 func logMiddleware(next http.Handler) http.Handler {
@@ -19,6 +21,14 @@ func logMiddleware(next http.Handler) http.Handler {
 func main() {
 	getters.GetPathById(0)
 	mux := mux2.NewRouter()
+
+	dbInfo := fmt.Sprintf("user=%s password=%s dbname=%s host = localhost port = 5432 sslmode=disable",
+		"docker", "docker", "forum")
+	var err error
+	_, err = sql.Open("postgres", dbInfo)
+	if err != nil {
+		log.Println(err)
+	}
 
 	mux.HandleFunc(`/api/user/{nick}/create`, handlers.CreateUser).Methods("POST")
 	mux.HandleFunc(`/api/user/{nick}/profile`, handlers.GetUser).Methods("GET")
