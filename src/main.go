@@ -13,6 +13,13 @@ import (
 
 func logMiddleware(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		dbInfo := fmt.Sprintf("user=%s password=%s dbname=%s host = localhost port = 5432 sslmode=disable",
+			"docker", "docker", "forum")
+		var err error
+		_, err = sql.Open("postgres", dbInfo)
+		if err != nil {
+			fmt.Printf(err.Error())
+		}
 		fmt.Printf("URL: %v; Method: %v; Origin: %v\n", r.URL.Path, r.Method, r.Header.Get("Origin"))
 		next.ServeHTTP(w, r)
 	})
