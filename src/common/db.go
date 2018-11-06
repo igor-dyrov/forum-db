@@ -11,7 +11,7 @@ import (
 var db *sql.DB
 
 const (
-	DB_USER     = "postgres"
+	DB_USER     = "docker"
 	DB_PASSWORD = "docker"
 	DB_NAME     = "forum"
 )
