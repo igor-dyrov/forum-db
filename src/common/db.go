@@ -13,12 +13,12 @@ var db *sql.DB
 const (
 	DB_USER     = "docker"
 	DB_PASSWORD = "docker"
-	DB_NAME     = "forum"
+	DB_NAME     = "foruгm"
 )
 
 func GetDB() *sql.DB {
 	if db == nil {
-		dbInfo := fmt.Sprintf("user=%s password=%s dbname=%s host = 127.0.0.1 port = 5432 sslmode=disable",
+		dbInfo := fmt.Sprintf("user=%s password=%s dbname=%s host = localhost port = 5432 sslmode=disable",
 			DB_USER, DB_PASSWORD, DB_NAME)
 		var err error
 		db, err = sql.Open("postgres", dbInfo)

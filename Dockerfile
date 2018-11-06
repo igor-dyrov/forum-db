@@ -8,6 +8,7 @@ RUN apt-get -y update
 #
 # Установка postgresql
 #
+RUN echo 1
 ENV PGVER 10
 RUN apt-get install -y postgresql-$PGVER
 
@@ -64,7 +65,7 @@ ENV PATH $GOROOT/bin:$GOPATH/bin:/usr/local/go/bin:$PATH
 
 USER root
 
-RUN cd ~ && mkdir Project3 && cd Project3
+RUN cd ~ && mkdir Project4 && cd Project4
 RUN git clone https://github.com/igor-dyrov/forum-db
 
 USER postgres
@@ -75,7 +76,6 @@ USER root
 
 RUN go get github.com/gorilla/mux
 RUN go get github.com/lib/pq
-RUN apt install curl -y
 
 # Объявлем порт сервера
 EXPOSE 5000
