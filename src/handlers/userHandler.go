@@ -3,12 +3,14 @@ package handlers
 import (
 	"net/http"
 	"io/ioutil"
-	"../models"
 	"encoding/json"
-	"github.com/gorilla/mux"
-	"../getters"
-	"../common"
 	"database/sql"
+
+	"github.com/gorilla/mux"
+	
+	"github.com/igor-dyrov/forum-db/src/models"
+	"github.com/igor-dyrov/forum-db/src/common"
+	"github.com/igor-dyrov/forum-db/src/getters"
 )
 
 func CreateUser(w http.ResponseWriter, request *http.Request) {

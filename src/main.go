@@ -1,23 +1,26 @@
 package main
 
 import (
-	"net/http"
-	"log"
 	"fmt"
+	"log"
+
+	"net/http"
+
 	mux "github.com/gorilla/mux"
+
+	"github.com/igor-dyrov/forum-db/src/common"
 	"github.com/igor-dyrov/forum-db/src/handlers"
-	"github.com/igor-dyrov/forum-db/src/getters"
 )
 
 func logMiddleware(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		fmt.Printf("URL: %v; Method: %v; Origin: %v\n", r.URL.Path, r.Method, r.Header.Get("Origin"))
+		fmt.Printf("URL: %v; Method: %v;\n", r.URL.Path, r.Method)
 		next.ServeHTTP(w, r)
 	})
 }
 
 func main() {
-	// getters.GetPathById(0)
+	common.GetDB()
 
 	router := mux.NewRouter()
 
@@ -45,6 +48,8 @@ func main() {
 	router.HandleFunc(`/api/service/clear`, handlers.ClearAll).Methods("POST")
 
 	logHandler := logMiddleware(router)
+
+	log.Print("Start server <>")
 
 	log.Fatal(http.ListenAndServe(":5000", logHandler))
 }

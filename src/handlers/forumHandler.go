@@ -4,10 +4,12 @@ import (
 	"net/http"
 	"io/ioutil"
 	"encoding/json"
-	"../models"
-	"../common"
-	"../getters"
+	
 	"github.com/gorilla/mux"
+
+	"github.com/igor-dyrov/forum-db/src/models"
+	"github.com/igor-dyrov/forum-db/src/common"
+	"github.com/igor-dyrov/forum-db/src/getters"
 )
 
 func CreateForum(w http.ResponseWriter, request *http.Request) {

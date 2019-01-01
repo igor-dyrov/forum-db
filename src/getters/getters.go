@@ -1,12 +1,15 @@
 package getters
 
 import (
-	_ "github.com/lib/pq"
-	"../models"
-	"../common"
-	"database/sql"
-	"strings"
 	"strconv"
+	"strings"
+
+	"database/sql"
+
+	_ "github.com/lib/pq"
+
+	"github.com/igor-dyrov/forum-db/src/common"
+	"github.com/igor-dyrov/forum-db/src/models"
 )
 
 func GetUserByNickOrEmail(nickname string, email string) (bool, []models.User) {
@@ -47,7 +50,6 @@ func GetUserByNick(nickname string) models.User {
 	for rows.Next() {
 		rows.Scan(&gotUser.About, &gotUser.Email, &gotUser.Fullname, &gotUser.Nickname, &gotUser.ID)
 	}
-
 
 	return gotUser
 }
@@ -132,7 +134,7 @@ func GetThreadBySlug(slug string) models.Thread {
 	return result
 }
 
-func GetThreads(forum string, limit string, since string, desc string) ([]models.Thread) {
+func GetThreads(forum string, limit string, since string, desc string) []models.Thread {
 	db := common.GetDB()
 	var rows *sql.Rows
 	var err error
@@ -182,7 +184,7 @@ func GetThreads(forum string, limit string, since string, desc string) ([]models
 	return result
 }
 
-func GetThreadsByForum(forum string) ([]models.Thread) {
+func GetThreadsByForum(forum string) []models.Thread {
 	db := common.GetDB()
 	rows, err := db.Query(`SELECT * FROM threads WHERE forum = $1`, forum)
 	if err != nil {
@@ -205,14 +207,14 @@ func GetSlugCase(slug string) string {
 	db := common.GetDB()
 	rows, err := db.Query(`SELECT slug FROM forums WHERE slug = $1`, slug)
 	if err != nil {
-		return  slug
+		return slug
 	}
 	var result string
 	for rows.Next() {
 		err = rows.Scan(&result)
 	}
 	if err != nil {
-		return  slug
+		return slug
 	}
 	return result
 }
@@ -367,7 +369,7 @@ func GetPathById(id int) []int {
 func GetParentPosts(id int) []models.Post {
 	db := common.GetDB()
 	var posts []models.Post
-	rows, err := db.Query(`SELECT * FROM posts WHERE parent = 0 AND thread = $1 ORDER BY id`,id)
+	rows, err := db.Query(`SELECT * FROM posts WHERE parent = 0 AND thread = $1 ORDER BY id`, id)
 	if err != nil {
 		return posts
 	}

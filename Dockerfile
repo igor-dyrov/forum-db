@@ -1,6 +1,6 @@
 FROM ubuntu:18.04
 
-MAINTAINER Igor Dyrov
+# MAINTAINER Igor Dyrov
 
 # Обвновление списка пакетов
 RUN apt-get -y update
@@ -53,23 +53,13 @@ ENV GOROOT /usr/lib/go-1.10
 ENV GOPATH /opt/go
 ENV PATH $GOROOT/bin:$GOPATH/bin:/usr/local/go/bin:$PATH
 
-# Копируем исходный код в Docker-контейнер
-#WORKDIR $GOPATH/src/github.com/igor-dyrov/forum-db/src
-#ADD golang/ $GOPATH/src/github.com/bozaro/igor-dyrov/forum-db/src
-#ADD common/ $GOPATH/src/github.com/bozaro/igor-dyrov/forum-db/src
 
-## Собираем генераторы
-#RUN go install ./vendor/github.com/go-swagger/go-swagger/cmd/swagger
-#RUN go install ./vendor/github.com/jteeuwen/go-bindata/go-bindata
-#
-## Собираем и устанавливаем пакет
-#RUN go generate -x ./restapi
-#RUN go install ./cmd/hello-server
+
 
 USER root
 
 RUN cd ~ && mkdir Project3 && cd Project3
-RUN git clone https://github.com/igor-dyrov/forum-db
+# RUN git clone https://github.com/igor-dyrov/forum-db
 
 RUN go get github.com/gorilla/mux
 RUN go get github.com/lib/pq
@@ -77,11 +67,12 @@ RUN go get github.com/lib/pq
 # Объявлем порт сервера
 EXPOSE 5000
 
+# Копируем исходный код в Docker-контейнер
 
-#
-# Запускаем PostgreSQL и сервер
-#
+WORKDIR $GOPATH/src/github.com/igor-dyrov/forum-db
+ADD . $GOPATH/src/github.com/igor-dyrov/forum-db
+
 
 USER postgres
 
-CMD service postgresql start && psql -f ./forum-db/init.sql forum && go run forum-db/src/main.go
+CMD service postgresql start && psql -f ./init.sql forum && go run src/main.go

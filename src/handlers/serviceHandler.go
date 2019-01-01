@@ -3,8 +3,9 @@ package handlers
 import (
 	"net/http"
 	"encoding/json"
-	"../common"
-	"../models"
+
+	"github.com/igor-dyrov/forum-db/src/models"
+	"github.com/igor-dyrov/forum-db/src/common"
 )
 
 func GetStatus(w http.ResponseWriter, request *http.Request) {

@@ -1,10 +1,12 @@
 package common
 
 import (
-	_ "github.com/lib/pq"
-	"database/sql"
 	"fmt"
 	"log"
+
+	"database/sql"
+
+	_ "github.com/lib/pq"
 )
 
 var db *sql.DB
@@ -14,7 +16,6 @@ const (
 	DB_PASSWORD = "docker"
 	DB_NAME     = "forum"
 )
-
 
 func GetDB() *sql.DB {
 	if db == nil {
@@ -29,6 +30,7 @@ func GetDB() *sql.DB {
 	}
 	return db
 }
+
 func CloseDB() {
 	db.Close()
 }

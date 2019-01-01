@@ -1,17 +1,20 @@
 package handlers
 
 import (
+	"log"
+	"strconv"
+	"strings"
+
 	"net/http"
 	"io/ioutil"
 	"encoding/json"
-	"../models"
-	"../common"
-	"../getters"
-	"github.com/gorilla/mux"
-	"strconv"
-	"log"
-	"strings"
 	"database/sql"
+	
+	"github.com/gorilla/mux"
+
+	"github.com/igor-dyrov/forum-db/src/models"
+	"github.com/igor-dyrov/forum-db/src/common"
+	"github.com/igor-dyrov/forum-db/src/getters"
 )
 
 func CreateThread(w http.ResponseWriter, request *http.Request) {

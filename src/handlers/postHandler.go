@@ -1,17 +1,20 @@
 package handlers
 
 import (
+	"time"
+	"strconv"
+	"strings"
+	
 	"net/http"
 	"io/ioutil"
 	"encoding/json"
-	"../models"
-	"../common"
-	"../getters"
-	"github.com/gorilla/mux"
-	"strconv"
-	"time"
+
 	"github.com/lib/pq"
-	"strings"
+	"github.com/gorilla/mux"
+
+	"github.com/igor-dyrov/forum-db/src/models"
+	"github.com/igor-dyrov/forum-db/src/common"
+	"github.com/igor-dyrov/forum-db/src/getters"
 )
 
 func CreatePosts(w http.ResponseWriter, request *http.Request) {

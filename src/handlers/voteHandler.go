@@ -1,14 +1,17 @@
 package handlers
 
 import (
+	"strconv"
+
 	"net/http"
 	"io/ioutil"
 	"encoding/json"
-	"../models"
-	"../common"
-	"../getters"
+
 	"github.com/gorilla/mux"
-	"strconv"
+	
+	"github.com/igor-dyrov/forum-db/src/models"
+	"github.com/igor-dyrov/forum-db/src/common"
+	"github.com/igor-dyrov/forum-db/src/getters"
 )
 
 func CreateVote(w http.ResponseWriter, request *http.Request) {
