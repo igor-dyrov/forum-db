@@ -4,9 +4,9 @@ import (
 	"net/http"
 	"log"
 	"fmt"
-	mux2 "github.com/gorilla/mux"
-	"./handlers"
-	"./getters"
+	mux "github.com/gorilla/mux"
+	"github.com/igor-dyrov/forum-db/src/handlers"
+	"github.com/igor-dyrov/forum-db/src/getters"
 )
 
 func logMiddleware(next http.Handler) http.Handler {
@@ -18,32 +18,33 @@ func logMiddleware(next http.Handler) http.Handler {
 
 func main() {
 	getters.GetPathById(0)
-	mux := mux2.NewRouter()
 
-	mux.HandleFunc(`/api/user/{nick}/create`, handlers.CreateUser).Methods("POST")
-	mux.HandleFunc(`/api/user/{nick}/profile`, handlers.GetUser).Methods("GET")
-	mux.HandleFunc(`/api/user/{nick}/profile`, handlers.UpdateUser).Methods("POST")
+	router := mux.NewRouter()
 
-	mux.HandleFunc(`/api/forum/create`, handlers.CreateForum).Methods("POST")
-	mux.HandleFunc(`/api/forum/{slug}/details`, handlers.GetForum).Methods("GET")
-	mux.HandleFunc(`/api/forum/{slug}/create`, handlers.CreateThread).Methods("POST")
-	mux.HandleFunc(`/api/forum/{slug}/threads`, handlers.GetThreads).Methods("GET")
-	mux.HandleFunc(`/api/forum/{slug}/users`, handlers.GetThreadUsers).Methods("GET")
+	router.HandleFunc(`/api/user/{nick}/create`, handlers.CreateUser).Methods("POST")
+	router.HandleFunc(`/api/user/{nick}/profile`, handlers.GetUser).Methods("GET")
+	router.HandleFunc(`/api/user/{nick}/profile`, handlers.UpdateUser).Methods("POST")
 
-	mux.HandleFunc(`/api/thread/{slug_or_id}/create`, handlers.CreatePosts).Methods("POST")
-	mux.HandleFunc(`/api/thread/{slug_or_id}/vote`, handlers.CreateVote).Methods("POST")
-	mux.HandleFunc(`/api/thread/{slug_or_id}/details`, handlers.ThreadDetails).Methods("GET")
-	mux.HandleFunc(`/api/thread/{slug_or_id}/details`, handlers.UpdateThread).Methods("POST")
+	router.HandleFunc(`/api/forum/create`, handlers.CreateForum).Methods("POST")
+	router.HandleFunc(`/api/forum/{slug}/details`, handlers.GetForum).Methods("GET")
+	router.HandleFunc(`/api/forum/{slug}/create`, handlers.CreateThread).Methods("POST")
+	router.HandleFunc(`/api/forum/{slug}/threads`, handlers.GetThreads).Methods("GET")
+	router.HandleFunc(`/api/forum/{slug}/users`, handlers.GetThreadUsers).Methods("GET")
 
-	mux.HandleFunc(`/api/thread/{slug_or_id}/posts`, handlers.GetThreadPosts).Methods("GET")
+	router.HandleFunc(`/api/thread/{slug_or_id}/create`, handlers.CreatePosts).Methods("POST")
+	router.HandleFunc(`/api/thread/{slug_or_id}/vote`, handlers.CreateVote).Methods("POST")
+	router.HandleFunc(`/api/thread/{slug_or_id}/details`, handlers.ThreadDetails).Methods("GET")
+	router.HandleFunc(`/api/thread/{slug_or_id}/details`, handlers.UpdateThread).Methods("POST")
 
-	mux.HandleFunc(`/api/post/{id}/details`, handlers.GetPost).Methods("GET")
-	mux.HandleFunc(`/api/post/{id}/details`, handlers.UpdatePost).Methods("POST")
+	router.HandleFunc(`/api/thread/{slug_or_id}/posts`, handlers.GetThreadPosts).Methods("GET")
 
-	mux.HandleFunc(`/api/service/status`, handlers.GetStatus).Methods("GET")
-	mux.HandleFunc(`/api/service/clear`, handlers.ClearAll).Methods("POST")
+	router.HandleFunc(`/api/post/{id}/details`, handlers.GetPost).Methods("GET")
+	router.HandleFunc(`/api/post/{id}/details`, handlers.UpdatePost).Methods("POST")
 
-	logHandler := logMiddleware(mux)
+	router.HandleFunc(`/api/service/status`, handlers.GetStatus).Methods("GET")
+	router.HandleFunc(`/api/service/clear`, handlers.ClearAll).Methods("POST")
+
+	logHandler := logMiddleware(router)
 
 	log.Fatal(http.ListenAndServe(":5000", logHandler))
 }

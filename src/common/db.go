@@ -1,16 +1,21 @@
 package common
+
 import (
 	_ "github.com/lib/pq"
 	"database/sql"
 	"fmt"
 	"log"
 )
+
 var db *sql.DB
+
 const (
 	DB_USER     = "docker"
 	DB_PASSWORD = "docker"
 	DB_NAME     = "forum"
 )
+
+
 func GetDB() *sql.DB {
 	if db == nil {
 		dbInfo := fmt.Sprintf("user=%s password=%s dbname=%s host = localhost port = 5432 sslmode=disable",
