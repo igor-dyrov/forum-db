@@ -22,10 +22,10 @@ func-test-no-keep:
 	./${test} func --wait=50 -u ${start_url} -r ${func_report}
 
 fill-test:
-	./tests/tech-db-forum fill --timeout=900
+	./${test} fill --timeout=900
 
 perform-test:
-	./tests/tech-db-forum perf --duration=600 --step=60
+	./${test} perf --duration=600 --step=60
 
 
 tests: func-test-no-keep fill-test perform-test

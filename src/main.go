@@ -17,7 +17,7 @@ func logMiddleware(next http.Handler) http.Handler {
 }
 
 func main() {
-	getters.GetPathById(0)
+	// getters.GetPathById(0)
 
 	router := mux.NewRouter()
 
