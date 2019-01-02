@@ -22,6 +22,7 @@ func panicIfError(err error) {
 }
 
 func CreateVote(w http.ResponseWriter, request *http.Request) {
+
 	b, err := ioutil.ReadAll(request.Body)
 	if err != nil {
 		http.Error(w, err.Error(), 500)
@@ -30,7 +31,6 @@ func CreateVote(w http.ResponseWriter, request *http.Request) {
 	defer request.Body.Close()
 	var vote models.Vote
 	err = json.Unmarshal(b, &vote)
-
 	panicIfError(err)
 
 	if !getters.UserExists(vote.Nickname) {
@@ -93,14 +93,14 @@ func CreateVote(w http.ResponseWriter, request *http.Request) {
 	}
 	panicIfError(err)
 
-	db.QueryRow(`UPDATE threads SET votes = votes + $1 WHERE id = $2 RETURNING *`, numOfVoices, thread.ID).Scan(
-		&thread.ID, &thread.Slug, &thread.Created,
-		&thread.Message, &thread.Title, &thread.Author, &thread.Forum, &thread.Votes)
-	output, err := json.Marshal(thread)
+	sqlRequest := `UPDATE threads SET votes = votes + $1 WHERE id = $2 RETURNING id, slug, created, message, title, author, forum, votes`
+	db.QueryRow(sqlRequest, numOfVoices, thread.ID).Scan(
+		&thread.ID, &thread.Slug, &thread.Created, &thread.Message, &thread.Title, &thread.Author, &thread.Forum, &thread.Votes)
 
+	output, err := json.Marshal(thread)
 	panicIfError(err)
 
-	log.Printf("ThreadID: %d, vote.user: %s, vote.voice: %d", thread.ID, vote.Nickname, vote.Voice)
+	log.Printf("ThreadID: %d, vote.user: %s, vote.voice: %d -> %d", thread.ID, vote.Nickname, vote.Voice, thread.Votes)
 
 	w.Header().Set("content-type", "application/json")
 	w.WriteHeader(200)
