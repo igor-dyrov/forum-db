@@ -1,20 +1,19 @@
 package handlers
 
 import (
-	"log"
 	"strconv"
 	"strings"
 
-	"net/http"
-	"io/ioutil"
-	"encoding/json"
 	"database/sql"
-	
+	"encoding/json"
+	"io/ioutil"
+	"net/http"
+
 	"github.com/gorilla/mux"
 
-	"github.com/igor-dyrov/forum-db/src/models"
 	"github.com/igor-dyrov/forum-db/src/common"
 	"github.com/igor-dyrov/forum-db/src/getters"
+	"github.com/igor-dyrov/forum-db/src/models"
 )
 
 func CreateThread(w http.ResponseWriter, request *http.Request) {
@@ -143,7 +142,7 @@ func ThreadDetails(w http.ResponseWriter, request *http.Request) {
 	var result models.Thread
 	result.ID = -1
 	id, err := strconv.Atoi(slug_or_id)
-	if  err == nil {
+	if err == nil {
 		rows, err := db.Query(`SELECT * FROM threads WHERE id = $1`, id)
 		if err != nil {
 			http.Error(w, err.Error(), 500)
@@ -224,7 +223,7 @@ func UpdateThread(w http.ResponseWriter, request *http.Request) {
 	slug_or_id := mux.Vars(request)["slug_or_id"]
 	db := common.GetDB()
 	id, err := strconv.Atoi(slug_or_id) //try to get id
-	if  err == nil { //got id
+	if err == nil {                     //got id
 		if !getters.ThreadExists(id) { //check user by id
 			var msg models.ResponseMessage
 			msg.Message = `Can't find post thread by id: ` + slug_or_id
@@ -312,7 +311,7 @@ func GetThreadPosts(w http.ResponseWriter, request *http.Request) {
 
 	db := common.GetDB()
 	id, err := strconv.Atoi(slug_or_id) //try to get id
-	if  err == nil { //got id
+	if err == nil {                     //got id
 		if !getters.ThreadExists(id) { //check user by id
 			var msg models.ResponseMessage
 			msg.Message = `Can't find post thread by id: ` + slug_or_id
@@ -345,7 +344,7 @@ func GetThreadPosts(w http.ResponseWriter, request *http.Request) {
 
 	var posts = make([]models.Post, 0)
 	var req = `SELECT * FROM posts WHERE thread = ` + strconv.Itoa(id) + ` `
-	if sort == "flat" ||  sort == "" {
+	if sort == "flat" || sort == "" {
 		if limit != "" {
 			if desc == "false" || desc == "" {
 				if since != "" {
@@ -450,7 +449,7 @@ func GetThreadPosts(w http.ResponseWriter, request *http.Request) {
 			} else {
 				for i := range parentPosts {
 					if i <= pageSize {
-						rows, err := db.Query("SELECT p1.* FROM posts AS p1 JOIN posts AS p2 ON p1.thread = $1 AND p1.path[1] > p2.path[1]" +
+						rows, err := db.Query("SELECT p1.* FROM posts AS p1 JOIN posts AS p2 ON p1.thread = $1 AND p1.path[1] > p2.path[1]"+
 							" AND p2.id = $2 WHERE p1.path[1] = $3 ORDER BY p1.path ASC, p1.id ASC", id, since, parentPosts[i].Id)
 						if err != nil {
 							http.Error(w, err.Error(), 500)
@@ -464,10 +463,10 @@ func GetThreadPosts(w http.ResponseWriter, request *http.Request) {
 			if since == "" {
 				for i := range parentPosts {
 					if i < pageSize {
-						var lastParent = parentPosts[len(parentPosts) - 1 - i].Id
+						var lastParent = parentPosts[len(parentPosts)-1-i].Id
 						rows, err := db.Query("SELECT * FROM posts WHERE thread = $1 AND path[1] = $2 ORDER BY path ASC, id ASC", id, lastParent)
-						log.Println(limit, since, sort, desc)
-						log.Println("here")
+						// log.Println(limit, since, sort, desc)
+						// log.Println("here")
 						if err != nil {
 							http.Error(w, err.Error(), 500)
 							return
@@ -478,8 +477,8 @@ func GetThreadPosts(w http.ResponseWriter, request *http.Request) {
 			} else {
 				for i := range parentPosts {
 					if i <= pageSize {
-						var lastParent = parentPosts[len(parentPosts) - 1 - i].Id
-						rows, err := db.Query("SELECT p1.* FROM posts AS p1 JOIN posts AS p2 ON p1.thread = $1 AND p1.path[1] < p2.path[1]" +
+						var lastParent = parentPosts[len(parentPosts)-1-i].Id
+						rows, err := db.Query("SELECT p1.* FROM posts AS p1 JOIN posts AS p2 ON p1.thread = $1 AND p1.path[1] < p2.path[1]"+
 							" AND p2.id = $2 WHERE p1.path[1] = $3 ORDER BY p1.path ASC, p1.id ASC", id, since, lastParent)
 						if err != nil {
 							http.Error(w, err.Error(), 500)

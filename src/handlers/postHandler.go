@@ -1,30 +1,34 @@
 package handlers
 
 import (
-	"time"
 	"strconv"
 	"strings"
-	
-	"net/http"
-	"io/ioutil"
+	"time"
+
 	"encoding/json"
+	"io/ioutil"
+	"net/http"
 
-	"github.com/lib/pq"
 	"github.com/gorilla/mux"
+	"github.com/lib/pq"
 
-	"github.com/igor-dyrov/forum-db/src/models"
 	"github.com/igor-dyrov/forum-db/src/common"
 	"github.com/igor-dyrov/forum-db/src/getters"
+	"github.com/igor-dyrov/forum-db/src/models"
 )
 
 func CreatePosts(w http.ResponseWriter, request *http.Request) {
-	var curTime = time.Now()
+	// curTime, _ := time.Parse(time.RFC3339, time.Now().UTC().Format(time.RFC3339))
+
+	curTime := time.Now().Truncate(time.Millisecond).UTC()
+
 	b, err := ioutil.ReadAll(request.Body)
 	if err != nil {
 		http.Error(w, err.Error(), 500)
 		return
 	}
 	defer request.Body.Close()
+
 	var posts []models.Post
 	err = json.Unmarshal(b, &posts)
 	if err != nil {
@@ -32,11 +36,12 @@ func CreatePosts(w http.ResponseWriter, request *http.Request) {
 		return
 	}
 	var slug_or_id = mux.Vars(request)["slug_or_id"]
+
 	db := common.GetDB()
 
 	id, err := strconv.Atoi(slug_or_id) //trying to get id
 	var forum string
-	if  err == nil { //got id
+	if err == nil { //got id
 		if !getters.ThreadExists(id) { //check user by id
 			var msg models.ResponseMessage
 			msg.Message = `Can't find post thread by id: ` + slug_or_id
@@ -77,10 +82,12 @@ func CreatePosts(w http.ResponseWriter, request *http.Request) {
 	err = db.QueryRow(`SELECT MAX(id) FROM posts`).Scan(&maxId)
 	err = nil
 	maxId++
+
 	for i := range posts {
 		posts[i].Forum = forum
 		posts[i].Thread = Thread
 		posts[i].Created = curTime
+
 		if !getters.UserExists(posts[i].Author) {
 			var message models.ResponseMessage
 			message.Message = "Can't find thread author by nickname: " + posts[i].Author
@@ -111,7 +118,7 @@ func CreatePosts(w http.ResponseWriter, request *http.Request) {
 		for j := range parentPath {
 			posts[i].Path = append(posts[i].Path, parentPath[j])
 		}
-		posts[i].Path = append(posts[i].Path, maxId + i)
+		posts[i].Path = append(posts[i].Path, maxId+i)
 		db.QueryRow(`INSERT INTO posts (author, created, forum, message, thread, parent, path) VALUES ($1, $2, $3, $4, $5, $6, $7) RETURNING id`,
 			posts[i].Author, posts[i].Created, posts[i].Forum, posts[i].Message, posts[i].Thread, posts[i].Parent, pq.Array(posts[i].Path)).Scan(&posts[i].Id)
 		if err != nil {
@@ -119,7 +126,6 @@ func CreatePosts(w http.ResponseWriter, request *http.Request) {
 			return
 		}
 	}
-
 
 	if len(posts) == 0 {
 		var post models.Post
@@ -147,6 +153,7 @@ func CreatePosts(w http.ResponseWriter, request *http.Request) {
 		http.Error(w, err.Error(), 500)
 		return
 	}
+
 	w.Header().Set("content-type", "application/json")
 	w.WriteHeader(201)
 	w.Write(output)
@@ -166,7 +173,7 @@ func GetPost(w http.ResponseWriter, request *http.Request) {
 		return
 	}
 	var gotPath string
-	for rows.Next()  {
+	for rows.Next() {
 		err = rows.Scan(&result.Id, &result.Author, &result.Created, &result.Forum,
 			&result.IsEdited, &result.Message, &result.Parent, &result.Thread, &gotPath)
 	}
@@ -184,17 +191,17 @@ func GetPost(w http.ResponseWriter, request *http.Request) {
 		return
 	}
 	//if len(gotPath) > 2 {
-		IDs := strings.Split(gotPath[1:len(gotPath)-1], ",")
-		for index := range IDs {
-			item, _ := strconv.Atoi(IDs[index])
-			result.Path = append(result.Path, item)
-		}
+	IDs := strings.Split(gotPath[1:len(gotPath)-1], ",")
+	for index := range IDs {
+		item, _ := strconv.Atoi(IDs[index])
+		result.Path = append(result.Path, item)
+	}
 	//}
 	PostInfo.Post = &result
 	var tempUser models.User
 	var tempThread models.Thread
 	var tempForum models.Forum
-	for _, info := range additions  {
+	for _, info := range additions {
 		if info == "user" {
 			tempUser = getters.GetUserByNick(result.Author)
 			PostInfo.Author = &tempUser
@@ -241,7 +248,7 @@ func UpdatePost(w http.ResponseWriter, request *http.Request) {
 		http.Error(w, err.Error(), 500)
 		return
 	}
-	for rows.Next()  {
+	for rows.Next() {
 		err = rows.Scan(&result.Id, &result.Author, &result.Created, &result.Forum,
 			&result.IsEdited, &result.Message, &result.Parent, &result.Thread, &result.Path)
 	}
