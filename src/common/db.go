@@ -1,6 +1,7 @@
 package common
 
 import (
+	"errors"
 	"fmt"
 	"log"
 
@@ -26,6 +27,9 @@ func GetDB() *sql.DB {
 		if err != nil {
 			log.Println(err)
 			return nil
+		}
+		if db == nil {
+			panic(errors.New("Couldn't connect to database: db is nil"))
 		}
 	}
 	return db

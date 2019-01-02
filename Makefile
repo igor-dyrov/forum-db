@@ -15,21 +15,36 @@ container_name := forum-tp
 
 
 
-func-test:
+func:
 	./${test} func --wait=30 --keep -u ${start_url} -r ${func_report}
 
-func-test-no-keep:
+func-no-keep:
 	./${test} func --wait=50 -u ${start_url} -r ${func_report}
 
-fill-test:
+fill:
 	./${test} fill --timeout=900
 
-perform-test:
+perform:
 	./${test} perf --duration=600 --step=60
 
 
 tests: func-test-no-keep fill-test perform-test
 
+#--------------------------------------------------------------------------------------------------------------------------------
+
+chain-func:
+	make docker
+	make run
+	make func-no-keep || make logs
+	make stop
+
+
+chain-perform:
+	make docker
+	make run
+	make fill || make logs
+	make perform || make logs
+	make stop
 
 #--------------------------------------------------------------------------------------------------------------------------------
 show-report:

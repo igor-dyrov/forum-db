@@ -72,18 +72,22 @@ func GetNickByEmail(email string) string {
 
 func UserExists(nickname string) bool {
 	db := common.GetDB()
-	rows, err := db.Query("SELECT email from users WHERE nickname = $1", nickname)
+	rows, err := db.Query("SELECT id FROM users WHERE nickname = $1", nickname)
+	defer rows.Close()
 	if err != nil {
-		return false
+		panic(err)
 	}
-	var email string
-	for rows.Next() {
-		rows.Scan(&email)
+
+	var id int64
+	if rows.Next() {
+		err := rows.Scan(&id)
+		if err != nil {
+			panic(err)
+		}
+		return true
 	}
-	if err != nil || email == "" {
-		return false
-	}
-	return true
+
+	return false
 }
 
 func GetIdByNickname(nickname string) int {
@@ -132,6 +136,36 @@ func GetThreadBySlug(slug string) models.Thread {
 		return models.Thread{}
 	}
 	return result
+}
+
+func GetThreadBySlugOrID(slugOrId string) *models.Thread {
+	db := common.GetDB()
+
+	thread := new(models.Thread)
+
+	var rows *sql.Rows
+	id, err := strconv.Atoi(slugOrId)
+	if err == nil {
+		rows, err = db.Query("SELECT id, coalesce(slug::text, ''), created, message, title, author, forum, votes FROM threads WHERE id = $1;", id)
+	} else {
+		rows, err = db.Query("SELECT id, coalesce(slug::text, ''), created, message, title, author, forum, votes FROM threads WHERE slug = $1;", slugOrId)
+	}
+	defer rows.Close()
+
+	if err != nil {
+		panic(err)
+	}
+
+	if rows.Next() {
+		err = rows.Scan(&thread.ID, &thread.Slug, &thread.Created, &thread.Message, &thread.Title, &thread.Author, &thread.Forum, &thread.Votes)
+		if err != nil {
+			panic(err)
+		}
+	} else {
+		return nil
+	}
+
+	return thread
 }
 
 func GetThreads(forum string, limit string, since string, desc string) []models.Thread {
