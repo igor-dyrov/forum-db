@@ -2,63 +2,36 @@ package handlers
 
 import (
 	"net/http"
-	"encoding/json"
 
-	"github.com/igor-dyrov/forum-db/src/models"
 	"github.com/igor-dyrov/forum-db/src/common"
+	"github.com/igor-dyrov/forum-db/src/models"
 )
 
 func GetStatus(w http.ResponseWriter, request *http.Request) {
-	status := new (models.Status)
-	db := common.GetDB()
+	status := new(models.Status)
 
-	rows := db.QueryRow(`SELECT COUNT(*) FROM users`)
+	conn := common.GetConnection()
+	defer common.Release(conn)
+
+	rows := conn.QueryRow(`SELECT COUNT(*) FROM users`)
 	rows.Scan(&status.User)
-	rows = db.QueryRow(`SELECT COUNT(*) FROM forums`)
+	rows = conn.QueryRow(`SELECT COUNT(*) FROM forums`)
 	rows.Scan(&status.Forum)
-	rows = db.QueryRow(`SELECT COUNT(*) FROM threads`)
+	rows = conn.QueryRow(`SELECT COUNT(*) FROM threads`)
 	rows.Scan(&status.Thread)
-	rows = db.QueryRow(`SELECT COUNT(*) FROM posts`)
+	rows = conn.QueryRow(`SELECT COUNT(*) FROM posts`)
 	rows.Scan(&status.Post)
 
-	output, _ := json.Marshal(status)
-	w.Header().Set("content-type", "application/json")
-	w.WriteHeader(200)
-	w.Write(output)
+	WriteResponce(w, 200, status)
 }
 
 func ClearAll(w http.ResponseWriter, request *http.Request) {
-	db := common.GetDB()
 
-	_, err := db.Query("TRUNCATE TABLE users, forums, threads, posts, votes")
-	if err != nil {
-		http.Error(w, err.Error(), 500)
-		return
-	}
-	//_, err := db.Query("TRUNCATE TABLE votes")
-	//if err != nil {
-	//	http.Error(w, err.Error(), 500)
-	//	return
-	//}
-	//_, err = db.Query("TRUNCATE TABLE posts")
-	//if err != nil {
-	//	http.Error(w, err.Error(), 500)
-	//	return
-	//}
-	//_, err = db.Query("TRUNCATE TABLE posts")
-	//if err != nil {
-	//	http.Error(w, err.Error(), 500)
-	//	return
-	//}
-	//_, err = db.Query("TRUNCATE TABLE forums")
-	//if err != nil {
-	//	http.Error(w, err.Error(), 500)
-	//	return
-	//}
-	//_, err = db.Query("TRUNCATE TABLE users")
-	//if err != nil {
-	//	http.Error(w, err.Error(), 500)
-	//	return
-	//}
+	conn := common.GetConnection()
+	defer common.Release(conn)
+
+	_, err := conn.Exec("TRUNCATE TABLE users, forums, threads, posts, votes")
+	PanicIfError(err)
+
 	w.WriteHeader(200)
 }
