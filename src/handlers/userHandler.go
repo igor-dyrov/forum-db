@@ -31,26 +31,14 @@ func CreateUser(w http.ResponseWriter, request *http.Request) {
 	exists, gotUsers := getters.GetUserByNickOrEmail(user.Nickname, user.Email)
 
 	if exists {
-		output, err := json.Marshal(gotUsers)
-		if err != nil {
-			http.Error(w, err.Error(), 500)
-			return
-		}
-		w.WriteHeader(409)
-		w.Header().Set("content-type", "application/json")
-		w.Write(output)
+		WriteResponce(w, 409, gotUsers)
 		return
 	}
 
 	_, err = db.Exec("INSERT INTO users (about, email, fullname, nickname) VALUES ($1, $2, $3, $4)", user.About, user.Email, user.Fullname, user.Nickname)
-	output, err := json.Marshal(user)
-	if err != nil {
-		http.Error(w, err.Error(), 500)
-		return
-	}
-	w.Header().Set("content-type", "application/json")
-	w.WriteHeader(201)
-	w.Write(output)
+	PanicIfError(err)
+
+	WriteResponce(w, 201, user)
 }
 
 func GetUser(w http.ResponseWriter, request *http.Request) {
