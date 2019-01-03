@@ -27,12 +27,13 @@ func CreateThread(w http.ResponseWriter, request *http.Request) {
 
 	thread.Forum = mux.Vars(request)["slug"]
 
-	if !getters.UserExists(thread.Author) {
+	if !getters.CheckUserByNickname(thread.Author) {
 		WriteNotFoundMessage(w, "Can't find thread author by nickname: "+thread.Author)
 		return
 	}
 
-	if !getters.SlugExists(thread.Forum) {
+	thread.Forum = getters.GetForumSlug(thread.Forum)
+	if thread.Forum == "" {
 		WriteNotFoundMessage(w, "Can't find thread forum by slug: "+thread.Forum)
 		return
 	}
@@ -58,8 +59,6 @@ func CreateThread(w http.ResponseWriter, request *http.Request) {
 
 	_, err = conn.Exec("UPDATE forums SET threads = threads + 1 WHERE slug = $1", thread.Forum)
 	PanicIfError(err)
-
-	thread.Forum = getters.GetSlugCase(thread.Forum)
 
 	WriteResponce(w, 201, thread)
 }

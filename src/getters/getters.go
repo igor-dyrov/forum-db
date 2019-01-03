@@ -92,6 +92,22 @@ func UserExists(nickname string) bool {
 	return false
 }
 
+func CheckUserByNickname(nickname string) bool {
+	db := common.GetDB()
+	rows, err := db.Query("SELECT nickname FROM users WHERE nickname = $1", nickname)
+	defer rows.Close()
+	PanicIfError(err)
+
+	// var nick string
+	if rows.Next() {
+		// err := rows.Scan(&nick)
+		// PanicIfError(err)
+		return true
+	}
+
+	return false
+}
+
 func GetIdByNickname(nickname string) int {
 	db := common.GetDB()
 	rows, err := db.Query("SELECT id FROM users WHERE nickname = $1", nickname)
@@ -239,20 +255,19 @@ func GetThreadsByForum(forum string) []models.Thread {
 	return result
 }
 
-func GetSlugCase(slug string) string {
-	db := common.GetDB()
-	rows, err := db.Query(`SELECT slug FROM forums WHERE slug = $1`, slug)
-	if err != nil {
-		return slug
-	}
+func GetForumSlug(slug string) string {
+
+	rows, err := common.GetDB().Query(`SELECT slug FROM forums WHERE slug = $1`, slug)
+	defer rows.Close()
+	PanicIfError(err)
+
 	var result string
 	for rows.Next() {
 		err = rows.Scan(&result)
+		PanicIfError(err)
+		return result
 	}
-	if err != nil {
-		return slug
-	}
-	return result
+	return ""
 }
 
 func SlugExists(slug string) bool {
