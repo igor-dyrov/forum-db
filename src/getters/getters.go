@@ -6,6 +6,7 @@ import (
 
 	"database/sql"
 
+	"github.com/jackc/pgx"
 	_ "github.com/lib/pq"
 
 	"github.com/igor-dyrov/forum-db/src/common"
@@ -92,9 +93,9 @@ func UserExists(nickname string) bool {
 	return false
 }
 
-func CheckUserByNickname(nickname string) bool {
-	db := common.GetDB()
-	rows, err := db.Query("SELECT nickname FROM users WHERE nickname = $1", nickname)
+func CheckUserByNickname(nickname string, conn *pgx.Conn) bool {
+
+	rows, err := conn.Query("SELECT nickname FROM users WHERE nickname = $1", nickname)
 	defer rows.Close()
 	PanicIfError(err)
 
@@ -154,6 +155,21 @@ func GetThreadBySlug(slug string) models.Thread {
 		return models.Thread{}
 	}
 	return result
+}
+
+func ConnGetThreadBySlug(slug string, conn *pgx.Conn) *models.Thread {
+
+	rows, err := conn.Query("SELECT id, slug, created, message, title, author, forum, votes FROM threads WHERE slug = $1", slug)
+	defer rows.Close()
+	PanicIfError(err)
+
+	result := new(models.Thread)
+	for rows.Next() {
+		err = rows.Scan(&result.ID, &result.Slug, &result.Created, &result.Message, &result.Title, &result.Author, &result.Forum, &result.Votes)
+		PanicIfError(err)
+		return result
+	}
+	return nil
 }
 
 func GetThreadBySlugOrID(slugOrId string) *models.Thread {
@@ -255,9 +271,9 @@ func GetThreadsByForum(forum string) []models.Thread {
 	return result
 }
 
-func GetForumSlug(slug string) string {
+func GetForumSlug(slug string, conn *pgx.Conn) string {
 
-	rows, err := common.GetDB().Query(`SELECT slug FROM forums WHERE slug = $1`, slug)
+	rows, err := conn.Query(`SELECT slug FROM forums WHERE slug = $1`, slug)
 	defer rows.Close()
 	PanicIfError(err)
 

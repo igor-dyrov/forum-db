@@ -27,25 +27,24 @@ func CreateThread(w http.ResponseWriter, request *http.Request) {
 
 	thread.Forum = mux.Vars(request)["slug"]
 
-	if !getters.CheckUserByNickname(thread.Author) {
+	conn := common.GetConnection()
+	defer common.Release(conn)
+
+	if !getters.CheckUserByNickname(thread.Author, conn) {
 		WriteNotFoundMessage(w, "Can't find thread author by nickname: "+thread.Author)
 		return
 	}
 
-	thread.Forum = getters.GetForumSlug(thread.Forum)
+	thread.Forum = getters.GetForumSlug(thread.Forum, conn)
 	if thread.Forum == "" {
 		WriteNotFoundMessage(w, "Can't find thread forum by slug: "+thread.Forum)
 		return
 	}
 
-	var gotThread = getters.GetThreadBySlug(thread.Slug)
-	if gotThread.Slug != "" {
+	if gotThread := getters.ConnGetThreadBySlug(thread.Slug, conn); gotThread != nil {
 		WriteResponce(w, 409, gotThread)
 		return
 	}
-
-	conn := common.GetConnection()
-	defer common.Release(conn)
 
 	if thread.Slug != "" {
 		err := conn.QueryRow("INSERT INTO threads (slug, created, message, title, author, forum, votes) VALUES ($1, $2, $3, $4, $5, $6, $7) RETURNING id",
