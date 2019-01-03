@@ -13,6 +13,7 @@ docker_tag := 1.0
 docker_full_name := ${docker_name}:${docker_tag}
 container_name := forum-tp
 
+timeout := 900
 debug := false
 
 func:
@@ -22,7 +23,7 @@ func-no-keep:
 	./${test} func --wait=50 -u ${start_url} -r ${func_report}
 
 fill:
-	./${test} fill --timeout=900
+	./${test} fill --timeout=${timeout}
 
 perform:
 	./${test} perf --duration=600 --step=60

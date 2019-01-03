@@ -51,6 +51,15 @@ func CloseDB() {
 	db.Close()
 }
 
+func GetConnection() *pgx.Conn {
+	conn, err := deadpool.Acquire()
+	if err != nil {
+		log.Printf("GetConnection: config: %v\n", deadpool.Stat())
+		panic(err)
+	}
+	return conn
+}
+
 func InitConnectionPool() {
 	if deadpool == nil {
 
