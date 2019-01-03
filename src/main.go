@@ -21,6 +21,7 @@ func logMiddleware(next http.Handler) http.Handler {
 
 func main() {
 	common.GetDB()
+	common.InitConnectionPool()
 
 	router := mux.NewRouter()
 

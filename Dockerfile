@@ -1,16 +1,11 @@
 FROM ubuntu:18.04
 
-# MAINTAINER Igor Dyrov
+# MAINTAINER Igor Dyrov # Deprecated now... why?
 
-# Обвновление списка пакетов
 RUN apt-get -y update
-
-#
-# Установка postgresql
-#
-RUN echo 1
 ENV PGVER 10
 RUN apt-get install -y postgresql-$PGVER
+RUN apt install -y golang-1.10 git
 
 # Run the rest of the commands as the ``postgres`` user created by the ``postgres-$PGVER`` package when it was ``apt-get installed``
 USER postgres
@@ -41,28 +36,19 @@ VOLUME  ["/etc/postgresql", "/var/log/postgresql", "/var/lib/postgresql"]
 # Back to the root user
 USER root
 
-#
-# Сборка проекта
-#
-
-# Установка golang
-RUN apt install -y golang-1.10 git
-
 # Выставляем переменную окружения для сборки проекта
 ENV GOROOT /usr/lib/go-1.10
 ENV GOPATH /opt/go
 ENV PATH $GOROOT/bin:$GOPATH/bin:/usr/local/go/bin:$PATH
 
 
-
-
 USER root
 
-RUN cd ~ && mkdir Project3 && cd Project3
 # RUN git clone https://github.com/igor-dyrov/forum-db
 
 RUN go get github.com/gorilla/mux
 RUN go get github.com/lib/pq
+RUN go get github.com/jackc/pgx
 
 # Объявлем порт сервера
 EXPOSE 5000
