@@ -13,7 +13,7 @@ docker_tag := 1.0
 docker_full_name := ${docker_name}:${docker_tag}
 container_name := forum-tp
 
-
+debug := false
 
 func:
 	./${test} func --wait=30 --keep -u ${start_url} -r ${func_report}
@@ -42,9 +42,14 @@ chain-func:
 chain-perform:
 	make docker
 	make run
-	make fill || make logs
-	make perform || make logs
+	make fill && make perform || make logs
+ifeq "${debug}" "true"
+	make inside
+else
 	make stop
+endif
+
+
 
 #--------------------------------------------------------------------------------------------------------------------------------
 show-report:
