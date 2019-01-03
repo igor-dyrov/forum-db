@@ -12,30 +12,32 @@ import (
 	"github.com/igor-dyrov/forum-db/src/models"
 )
 
+func PanicIfError(err error) {
+	if err != nil {
+		panic(err)
+	}
+}
+
 func GetUserByNickOrEmail(nickname string, email string) (bool, []models.User) {
 	db := common.GetDB()
 
-	rows, err := db.Query(`SELECT * from users WHERE email = $1 OR nickname = $2`, email, nickname)
-	result := make([]models.User, 0)
+	rows, err := db.Query("SELECT about, email, fullname, nickname, id FROM users WHERE email = $1 OR nickname = $2;", email, nickname)
+	PanicIfError(err)
 
-	if err != nil {
-		if err != nil {
-			return false, result
-		}
-	}
+	result := make([]models.User, 0)
 
 	for rows.Next() {
 		var gotUser models.User
-		err = rows.Scan(&gotUser.About, &gotUser.Email, &gotUser.Fullname, &gotUser.Nickname, &gotUser.ID)
-		if gotUser.Nickname != "" {
-			result = append(result, gotUser)
-		}
+		err := rows.Scan(&gotUser.About, &gotUser.Email, &gotUser.Fullname, &gotUser.Nickname, &gotUser.ID)
+		PanicIfError(err)
+
+		result = append(result, gotUser)
 	}
 
-	if err == nil && len(result) != 0 {
+	if len(result) != 0 {
 		return true, result
 	}
-	return false, result
+	return false, nil
 }
 
 func GetUserByNick(nickname string) models.User {

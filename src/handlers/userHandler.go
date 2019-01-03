@@ -14,22 +14,22 @@ import (
 )
 
 func CreateUser(w http.ResponseWriter, request *http.Request) {
-	b, err := ioutil.ReadAll(request.Body)
-	if err != nil {
-		http.Error(w, err.Error(), 500)
-		return
-	}
+
+	body, err := ioutil.ReadAll(request.Body)
+	PanicIfError(err)
 	defer request.Body.Close()
+
 	var user models.User
-	err = json.Unmarshal(b, &user)
-	if err != nil {
-		http.Error(w, err.Error(), 500)
-		return
-	}
+
+	err = json.Unmarshal(body, &user)
+	PanicIfError(err)
+
 	user.Nickname = mux.Vars(request)["nick"]
 
 	db := common.GetDB()
+
 	exists, gotUsers := getters.GetUserByNickOrEmail(user.Nickname, user.Email)
+
 	if exists {
 		output, err := json.Marshal(gotUsers)
 		if err != nil {
