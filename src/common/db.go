@@ -27,7 +27,7 @@ const (
 	dbPassword = "docker"
 	dbName     = "forum"
 
-	connPoolSize = 42
+	connPoolSize = 4
 )
 
 func GetDB() *sql.DB {
@@ -82,7 +82,7 @@ func InitConnectionPool() {
 		conns, err := pgx.NewConnPool(
 			pgx.ConnPoolConfig{
 				ConnConfig:     config,
-				MaxConnections: 3,
+				MaxConnections: connPoolSize,
 			},
 		)
 		if err != nil {

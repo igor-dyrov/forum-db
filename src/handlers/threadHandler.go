@@ -43,17 +43,20 @@ func CreateThread(w http.ResponseWriter, request *http.Request) {
 		return
 	}
 
-	db := common.GetDB()
+	conn := common.GetConnection()
+	defer common.Release(conn)
 
 	if thread.Slug != "" {
-		db.QueryRow("INSERT INTO threads (slug, created, message, title, author, forum, votes) VALUES ($1, $2, $3, $4, $5, $6, $7) RETURNING id",
+		err := conn.QueryRow("INSERT INTO threads (slug, created, message, title, author, forum, votes) VALUES ($1, $2, $3, $4, $5, $6, $7) RETURNING id",
 			thread.Slug, thread.Created, thread.Message, thread.Title, thread.Author, thread.Forum, thread.Votes).Scan(&thread.ID)
+		PanicIfError(err)
 	} else {
-		db.QueryRow("INSERT INTO threads (created, message, title, author, forum, votes) VALUES ($1, $2, $3, $4, $5, $6) RETURNING id",
+		err := conn.QueryRow("INSERT INTO threads (created, message, title, author, forum, votes) VALUES ($1, $2, $3, $4, $5, $6) RETURNING id",
 			thread.Created, thread.Message, thread.Title, thread.Author, thread.Forum, thread.Votes).Scan(&thread.ID)
+		PanicIfError(err)
 	}
 
-	_, err = db.Exec("UPDATE forums SET threads = threads + 1 WHERE slug = $1", thread.Forum)
+	_, err = conn.Exec("UPDATE forums SET threads = threads + 1 WHERE slug = $1", thread.Forum)
 	PanicIfError(err)
 
 	thread.Forum = getters.GetSlugCase(thread.Forum)
