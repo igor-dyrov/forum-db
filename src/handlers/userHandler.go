@@ -26,8 +26,6 @@ func CreateUser(w http.ResponseWriter, request *http.Request) {
 
 	user.Nickname = mux.Vars(request)["nick"]
 
-	db := common.GetDB()
-
 	exists, gotUsers := getters.GetUserByNickOrEmail(user.Nickname, user.Email)
 
 	if exists {
@@ -35,7 +33,9 @@ func CreateUser(w http.ResponseWriter, request *http.Request) {
 		return
 	}
 
-	_, err = db.Exec("INSERT INTO users (about, email, fullname, nickname) VALUES ($1, $2, $3, $4)", user.About, user.Email, user.Fullname, user.Nickname)
+	conn := common.GetConnection()
+	defer common.Release(conn)
+	_, err = conn.Exec("INSERT INTO users (about, email, fullname, nickname) VALUES ($1, $2, $3, $4)", user.About, user.Email, user.Fullname, user.Nickname)
 	PanicIfError(err)
 
 	WriteResponce(w, 201, user)

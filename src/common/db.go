@@ -60,6 +60,10 @@ func GetConnection() *pgx.Conn {
 	return conn
 }
 
+func Release(conn *pgx.Conn) {
+	deadpool.Release(conn)
+}
+
 func InitConnectionPool() {
 	if deadpool == nil {
 
