@@ -35,6 +35,7 @@ func CreateUser(w http.ResponseWriter, request *http.Request) {
 
 	conn := common.GetConnection()
 	defer common.Release(conn)
+
 	_, err = conn.Exec("INSERT INTO users (about, email, fullname, nickname) VALUES ($1, $2, $3, $4)", user.About, user.Email, user.Fullname, user.Nickname)
 	PanicIfError(err)
 

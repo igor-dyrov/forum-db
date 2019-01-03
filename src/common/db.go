@@ -54,10 +54,14 @@ func CloseDB() {
 func GetConnection() *pgx.Conn {
 	conn, err := deadpool.Acquire()
 	if err != nil {
-		log.Printf("GetConnection: config: %v\n", deadpool.Stat())
+		LogConnectionPoolStat()
 		panic(err)
 	}
 	return conn
+}
+
+func LogConnectionPoolStat() {
+	log.Printf("GetConnection: config: %v\n", deadpool.Stat())
 }
 
 func Release(conn *pgx.Conn) {
@@ -78,7 +82,7 @@ func InitConnectionPool() {
 		conns, err := pgx.NewConnPool(
 			pgx.ConnPoolConfig{
 				ConnConfig:     config,
-				MaxConnections: 42,
+				MaxConnections: 3,
 			},
 		)
 		if err != nil {

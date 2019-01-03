@@ -14,14 +14,6 @@ import (
 	"github.com/igor-dyrov/forum-db/src/models"
 )
 
-func writeMessage(w http.ResponseWriter, message string) {
-	output, err := json.Marshal(models.ResponseMessage{Message: message})
-	PanicIfError(err)
-
-	w.WriteHeader(404)
-	w.Write(output)
-}
-
 // CreateVote ...
 func CreateVote(w http.ResponseWriter, request *http.Request) {
 	w.Header().Set("content-type", "application/json")
@@ -35,7 +27,7 @@ func CreateVote(w http.ResponseWriter, request *http.Request) {
 	PanicIfError(err)
 
 	if !getters.UserExists(vote.Nickname) {
-		writeMessage(w, "Can't find thread author by nickname: "+vote.Nickname)
+		WriteNotFoundMessage(w, "Can't find thread author by nickname: "+vote.Nickname)
 		return
 	}
 
@@ -44,7 +36,7 @@ func CreateVote(w http.ResponseWriter, request *http.Request) {
 	var slugOrID = mux.Vars(request)["slug_or_id"]
 	thread := getters.GetThreadBySlugOrID(slugOrID)
 	if thread == nil {
-		writeMessage(w, "Can't find post thread by id: "+slugOrID)
+		WriteNotFoundMessage(w, "Can't find post thread by id: "+slugOrID)
 		return
 	}
 
