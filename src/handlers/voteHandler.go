@@ -1,8 +1,6 @@
 package handlers
 
 import (
-	"log"
-
 	"encoding/json"
 	"io/ioutil"
 	"net/http"
@@ -26,7 +24,10 @@ func CreateVote(w http.ResponseWriter, request *http.Request) {
 	err = json.Unmarshal(body, &vote)
 	PanicIfError(err)
 
-	if !getters.UserExists(vote.Nickname) {
+	conn := common.GetConnection()
+	defer common.Release(conn)
+
+	if !getters.CheckUserByNickname(vote.Nickname, conn) {
 		WriteNotFoundMessage(w, "Can't find thread author by nickname: "+vote.Nickname)
 		return
 	}
@@ -49,10 +50,8 @@ func CreateVote(w http.ResponseWriter, request *http.Request) {
 			PanicIfError(err)
 			numOfVoices = vote.Voice * 2
 		} else {
-			log.Printf("Thread: %v", *thread)
-			output, _ := json.Marshal(thread)
-			w.WriteHeader(200)
-			w.Write(output)
+			// log.Printf("Thread: %v", *thread)
+			WriteResponce(w, 200, thread)
 			return
 		}
 	} else {
@@ -72,8 +71,5 @@ func CreateVote(w http.ResponseWriter, request *http.Request) {
 
 	// log.Printf("ThreadID: %d, user: %s, voice: %d -> %d", thread.ID, vote.Nickname, vote.Voice, thread.Votes)
 
-	output, err := json.Marshal(*thread)
-	PanicIfError(err)
-	w.WriteHeader(200)
-	w.Write(output)
+	WriteResponce(w, 200, thread)
 }
