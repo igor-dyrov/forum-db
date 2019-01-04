@@ -31,8 +31,6 @@ func CreateVote(w http.ResponseWriter, request *http.Request) {
 		return
 	}
 
-	db := common.GetDB()
-
 	var slugOrID = mux.Vars(request)["slug_or_id"]
 	thread := getters.GetThreadBySlugOrID(slugOrID)
 	if thread == nil {
@@ -42,6 +40,8 @@ func CreateVote(w http.ResponseWriter, request *http.Request) {
 
 	numOfVoices := 0
 	oldVote := getters.GetVote(vote.Nickname, thread.ID)
+
+	db := common.GetDB()
 
 	if oldVote.ID != -1 {
 		if oldVote.Voice != vote.Voice {

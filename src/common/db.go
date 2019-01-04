@@ -27,7 +27,7 @@ const (
 	dbPassword = "docker"
 	dbName     = "forum"
 
-	connPoolSize = 4
+	connPoolSize = 16
 )
 
 func GetDB() *sql.DB {
