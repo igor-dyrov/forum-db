@@ -45,7 +45,8 @@ CREATE TABLE posts (
   message   TEXT	NOT NULL,
   parent    INTEGER	DEFAULT 0,
   thread    INTEGER	NOT NULL REFERENCES threads(id),
-  path      BIGINT	ARRAY
+  
+  path      INTEGER	ARRAY
 );
 
 CREATE TABLE votes (
@@ -55,3 +56,21 @@ CREATE TABLE votes (
   thread    INTEGER     NOT NULL REFERENCES threads(id),
   UNIQUE(nickname, thread)
 );
+
+
+-- --------------------------- Triggers ---------------------------
+
+CREATE FUNCTION fix_path() RETURNS trigger AS $fix_path$
+DECLARE
+  parent_id INTEGER;
+
+BEGIN
+  parent_id := new.parent;
+  new.path := array_append((SELECT path from posts WHERE id = parent_id), new.id);
+ -- insert into forum_users (forum, username) values (new.forum, new.author) ON conflict (forum, username) do nothing;
+  RETURN new;
+END;
+$fix_path$ LANGUAGE plpgsql;
+
+
+CREATE TRIGGER fix_path BEFORE INSERT OR UPDATE ON posts FOR EACH ROW EXECUTE PROCEDURE fix_path();
