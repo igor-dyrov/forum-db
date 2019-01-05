@@ -65,11 +65,6 @@ func CreatePosts(w http.ResponseWriter, request *http.Request) {
 
 	db := common.GetDB()
 
-	// var maxId int = 0
-	// err = db.QueryRow(`SELECT MAX(id) FROM posts`).Scan(&maxId)
-	// err = nil
-	// maxId++
-
 	for i := range posts {
 		posts[i].Forum = forumSlug
 		posts[i].Thread = threadID
@@ -84,13 +79,6 @@ func CreatePosts(w http.ResponseWriter, request *http.Request) {
 			return
 		}
 
-		// var parentPath = getters.GetPathById(posts[i].Parent)
-		// for j := range parentPath {
-		// 	posts[i].Path = append(posts[i].Path, parentPath[j])
-		// }
-
-		// posts[i].Path = append(posts[i].Path, maxId+i)
-
 		err := db.QueryRow(
 			"INSERT INTO posts (author, created, forum, message, thread, parent, path) VALUES ($1, $2, $3, $4, $5, $6, $7) RETURNING id;",
 			posts[i].Author, posts[i].Created, posts[i].Forum,
@@ -98,7 +86,6 @@ func CreatePosts(w http.ResponseWriter, request *http.Request) {
 			pq.Array(posts[i].Path),
 		).Scan(
 			&posts[i].Id,
-			// &posts[i].Path,
 		)
 		PanicIfError(err)
 	}
