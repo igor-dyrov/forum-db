@@ -51,27 +51,11 @@ func CreatePosts(w http.ResponseWriter, request *http.Request) {
 
 	var ThreadSlugOrID = mux.Vars(request)["slug_or_id"]
 
-	id, err := strconv.Atoi(ThreadSlugOrID)
-	var forum string
-	if err == nil { //got id
-		if !getters.ThreadExists(id) {
-			WriteNotFoundMessage(w, "Can't find post thread by id: "+ThreadSlugOrID)
-			return
-		}
-		forum = getters.GetSlugById(id)
-	}
+	threadExists, threadID, forumSlug := getters.GetThreadIDAndForumBySlugOrID(ThreadSlugOrID)
 
-	err = nil
-	var Thread int
-	if forum != "" {
-		Thread = id
-	} else {
-		forum = getters.GetThreadSlug(ThreadSlugOrID) //get forum from thread by slug
-		Thread = getters.GetThreadId(ThreadSlugOrID)
-		if Thread == -1 {
-			WriteNotFoundMessage(w, "Can't find post thread by slug: "+ThreadSlugOrID)
-			return
-		}
+	if !threadExists {
+		WriteNotFoundMessage(w, "Can't find thread by id: "+ThreadSlugOrID)
+		return
 	}
 
 	if len(posts) == 0 {
@@ -87,8 +71,8 @@ func CreatePosts(w http.ResponseWriter, request *http.Request) {
 	maxId++
 
 	for i := range posts {
-		posts[i].Forum = forum
-		posts[i].Thread = Thread
+		posts[i].Forum = forumSlug
+		posts[i].Thread = threadID
 		posts[i].Created = curTime
 
 		if !getters.UserExists(posts[i].Author) {
@@ -106,12 +90,16 @@ func CreatePosts(w http.ResponseWriter, request *http.Request) {
 		}
 
 		posts[i].Path = append(posts[i].Path, maxId+i)
-		db.QueryRow(`INSERT INTO posts (author, created, forum, message, thread, parent, path) VALUES ($1, $2, $3, $4, $5, $6, $7) RETURNING id`,
-			posts[i].Author, posts[i].Created, posts[i].Forum, posts[i].Message, posts[i].Thread, posts[i].Parent, pq.Array(posts[i].Path)).Scan(&posts[i].Id)
+		db.QueryRow(
+			`INSERT INTO posts (author, created, forum, message, thread, parent, path) VALUES ($1, $2, $3, $4, $5, $6, $7) RETURNING id`,
+			posts[i].Author, posts[i].Created, posts[i].Forum,
+			posts[i].Message, posts[i].Thread, posts[i].Parent,
+			pq.Array(posts[i].Path),
+		).Scan(&posts[i].Id)
 		PanicIfError(err)
 	}
 
-	_, err = db.Exec("UPDATE forums SET posts = posts + $1 WHERE slug = $2", len(posts), forum)
+	_, err = db.Exec("UPDATE forums SET posts = posts + $1 WHERE slug = $2", len(posts), forumSlug)
 	PanicIfError(err)
 
 	WriteResponce(w, 201, posts)

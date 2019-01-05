@@ -99,6 +99,35 @@ func GetThreadBySlugOrID(slugOrId string) *models.Thread {
 	return thread
 }
 
+func GetThreadIDAndForumBySlugOrID(slugOrId string) (bool, int, string) {
+	pool := common.GetPool()
+
+	var rows *pgx.Rows
+	id, err := strconv.Atoi(slugOrId)
+	if err == nil {
+		rows, err = pool.Query("SELECT id, forum FROM threads WHERE id = $1;", id)
+	} else {
+		rows, err = pool.Query("SELECT id, forum FROM threads WHERE slug = $1;", slugOrId)
+	}
+	defer rows.Close()
+
+	if err != nil {
+		panic(err)
+	}
+
+	if rows.Next() {
+		var forumSlug string
+		var id int
+		var err = rows.Scan(&id, &forumSlug)
+		if err != nil {
+			panic(err)
+		}
+		return true, id, forumSlug
+	}
+
+	return false, 0, ""
+}
+
 func GetThreads(forum string, limit string, since string, desc string) []models.Thread {
 	db := common.GetDB()
 	var rows *sql.Rows

@@ -30,6 +30,10 @@ const (
 	connPoolSize = 16
 )
 
+func GetPool() *pgx.ConnPool {
+	return deadpool
+}
+
 func GetDB() *sql.DB {
 	if db == nil {
 		dbInfo := fmt.Sprintf("user=%s password=%s dbname=%s host = localhost port = 5432 sslmode=disable",
