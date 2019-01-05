@@ -56,6 +56,11 @@ func CreatePosts(w http.ResponseWriter, request *http.Request) {
 		}
 	}
 
+	if len(posts) == 0 {
+		WriteResponce(w, 201, posts)
+		return
+	}
+
 	var maxId int = 0
 	err = db.QueryRow(`SELECT MAX(id) FROM posts`).Scan(&maxId)
 	err = nil
@@ -86,15 +91,10 @@ func CreatePosts(w http.ResponseWriter, request *http.Request) {
 		PanicIfError(err)
 	}
 
-	if len(posts) == 0 {
-		WriteResponce(w, 201, posts)
-		return
-	} else {
-		_, err = db.Exec("UPDATE forums SET posts = posts + $1 WHERE slug = $2", len(posts), forum)
-		PanicIfError(err)
-	}
-	WriteResponce(w, 201, posts)
+	_, err = db.Exec("UPDATE forums SET posts = posts + $1 WHERE slug = $2", len(posts), forum)
+	PanicIfError(err)
 
+	WriteResponce(w, 201, posts)
 }
 
 func GetPost(w http.ResponseWriter, request *http.Request) {
