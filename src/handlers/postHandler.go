@@ -17,6 +17,26 @@ import (
 	"github.com/igor-dyrov/forum-db/src/models"
 )
 
+func requiredParents(posts []models.Post) []int {
+
+	parents := make(map[int]bool)
+	requiredParents := make([]int, 0, len(posts))
+
+	for i := 0; i < len(posts); i++ {
+		parents[posts[i].Parent] = true
+	}
+
+	parents[0] = false
+
+	for id, isRequired := range parents {
+		if isRequired {
+			requiredParents = append(requiredParents, id)
+		}
+	}
+
+	return requiredParents
+}
+
 func CreatePosts(w http.ResponseWriter, request *http.Request) {
 
 	curTime := time.Now().Truncate(time.Millisecond).UTC()
@@ -29,15 +49,13 @@ func CreatePosts(w http.ResponseWriter, request *http.Request) {
 	err = json.Unmarshal(body, &posts)
 	PanicIfError(err)
 
-	var slug_or_id = mux.Vars(request)["slug_or_id"]
+	var ThreadSlugOrID = mux.Vars(request)["slug_or_id"]
 
-	db := common.GetDB()
-
-	id, err := strconv.Atoi(slug_or_id)
+	id, err := strconv.Atoi(ThreadSlugOrID)
 	var forum string
 	if err == nil { //got id
 		if !getters.ThreadExists(id) {
-			WriteNotFoundMessage(w, "Can't find post thread by id: "+slug_or_id)
+			WriteNotFoundMessage(w, "Can't find post thread by id: "+ThreadSlugOrID)
 			return
 		}
 		forum = getters.GetSlugById(id)
@@ -48,10 +66,10 @@ func CreatePosts(w http.ResponseWriter, request *http.Request) {
 	if forum != "" {
 		Thread = id
 	} else {
-		forum = getters.GetThreadSlug(slug_or_id) //get forum from thread by slug
-		Thread = getters.GetThreadId(slug_or_id)
+		forum = getters.GetThreadSlug(ThreadSlugOrID) //get forum from thread by slug
+		Thread = getters.GetThreadId(ThreadSlugOrID)
 		if Thread == -1 {
-			WriteNotFoundMessage(w, "Can't find post thread by slug: "+slug_or_id)
+			WriteNotFoundMessage(w, "Can't find post thread by slug: "+ThreadSlugOrID)
 			return
 		}
 	}
@@ -60,6 +78,8 @@ func CreatePosts(w http.ResponseWriter, request *http.Request) {
 		WriteResponce(w, 201, posts)
 		return
 	}
+
+	db := common.GetDB()
 
 	var maxId int = 0
 	err = db.QueryRow(`SELECT MAX(id) FROM posts`).Scan(&maxId)

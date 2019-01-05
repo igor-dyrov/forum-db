@@ -50,7 +50,7 @@ func main() {
 
 	// logHandler := logMiddleware(router)
 
-	log.Print("Start server <>")
+	log.Print("<Start server>")
 
 	log.Fatal(http.ListenAndServe(":5000", router))
 }
