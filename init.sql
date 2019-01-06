@@ -41,14 +41,14 @@ CREATE UNIQUE INDEX threads_slug_id_forum_idx on threads(slug, id, forum); -- ?
 
 
 CREATE TABLE posts (
-  id        SERIAL	NOT NULL PRIMARY KEY,
-  author    CITEXT	NOT NULL REFERENCES users(nickname),
+  id        SERIAL	   NOT NULL PRIMARY KEY,
+  author    CITEXT	   NOT NULL REFERENCES users(nickname),
   created   TIMESTAMP WITH TIME ZONE,
-  forum     CITEXT REFERENCES forums(slug),
-  isEdited  BOOLEAN	DEFAULT FALSE,
-  message   TEXT	NOT NULL,
-  parent    INTEGER	DEFAULT 0,
-  thread    INTEGER	NOT NULL REFERENCES threads(id),
+  forum     CITEXT     REFERENCES forums(slug),
+  isEdited  BOOLEAN	   DEFAULT FALSE,
+  message   TEXT	     NOT NULL,
+  parent    INTEGER	   DEFAULT 0,
+  thread    INTEGER	   NOT NULL REFERENCES threads(id),
   
   path      INTEGER	ARRAY
 );
@@ -58,11 +58,14 @@ CREATE UNIQUE INDEX posts_thread_id_idx on posts(thread, id, path);        -- ?
 
 CREATE TABLE votes (
   id        SERIAL      NOT NULL PRIMARY KEY,
-  nickname  CITEXT     NOT NULL REFERENCES users(nickname),
+  nickname  CITEXT      NOT NULL REFERENCES users(nickname),
   voice     INTEGER,
   thread    INTEGER     NOT NULL REFERENCES threads(id),
-  UNIQUE(nickname, thread)
+  
+	UNIQUE(nickname, thread)
 );
+
+
 
 
 -- --------------------------- Triggers ---------------------------
