@@ -20,7 +20,11 @@ func logMiddleware(next http.Handler) http.Handler {
 }
 
 func main() {
+
+	// runtime.GOMAXPROCS(runtime.NumCPU())
+
 	common.GetDB()
+	common.InitConnectionPool()
 
 	router := mux.NewRouter()
 
@@ -49,7 +53,7 @@ func main() {
 
 	// logHandler := logMiddleware(router)
 
-	log.Print("Start server <>")
+	log.Print("<Start server>")
 
 	log.Fatal(http.ListenAndServe(":5000", router))
 }

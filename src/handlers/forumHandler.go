@@ -1,15 +1,15 @@
 package handlers
 
 import (
-	"net/http"
-	"io/ioutil"
 	"encoding/json"
-	
+	"io/ioutil"
+	"net/http"
+
 	"github.com/gorilla/mux"
 
-	"github.com/igor-dyrov/forum-db/src/models"
 	"github.com/igor-dyrov/forum-db/src/common"
 	"github.com/igor-dyrov/forum-db/src/getters"
+	"github.com/igor-dyrov/forum-db/src/models"
 )
 
 func CreateForum(w http.ResponseWriter, request *http.Request) {
@@ -88,7 +88,7 @@ func GetForum(w http.ResponseWriter, request *http.Request) {
 		return
 	} else {
 		var message models.ResponseMessage
-		message.Message = "Can`t find forum with slug: " + 	slug
+		message.Message = "Can`t find forum with slug: " + slug
 		output, err := json.Marshal(message)
 		if err != nil {
 			http.Error(w, err.Error(), 500)
@@ -99,4 +99,3 @@ func GetForum(w http.ResponseWriter, request *http.Request) {
 		w.Write(output)
 	}
 }
-
