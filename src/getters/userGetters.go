@@ -1,6 +1,8 @@
 package getters
 
 import (
+	"fmt"
+
 	"github.com/igor-dyrov/forum-db/src/common"
 	"github.com/igor-dyrov/forum-db/src/models"
 	"github.com/jackc/pgx"
@@ -78,6 +80,37 @@ func UserExists(nickname string) bool {
 	}
 
 	return false
+}
+
+func joinStrings(nicknames map[string]bool) (s string) {
+	sep := ""
+	for str, _ := range nicknames {
+		s += sep
+		sep = ", "
+		s += fmt.Sprintf("'%s'", str)
+	}
+	return
+}
+
+func GetUsersByNicknames(nicknames map[string]bool) []string {
+
+	rows, err := common.GetPool().Query("SELECT nickname FROM users WHERE nickname = ANY (ARRAY[" + joinStrings(nicknames) + "])")
+	defer rows.Close()
+	if err != nil {
+		panic(err)
+	}
+
+	nicksArray := make([]string, 0, len(nicknames))
+
+	for rows.Next() {
+		var nick string
+		err := rows.Scan(&nick)
+		if err != nil {
+			panic(err)
+		}
+		nicksArray = append(nicksArray, nick)
+	}
+	return nicksArray
 }
 
 func CheckUserByNickname(nickname string, conn *pgx.Conn) bool {

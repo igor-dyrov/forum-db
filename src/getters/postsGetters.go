@@ -1,6 +1,7 @@
 package getters
 
 import (
+	"fmt"
 	"strconv"
 	"strings"
 
@@ -22,6 +23,38 @@ func CheckParent(parentId int32, thread int) bool {
 		return false
 	}
 	return parentThread == thread
+}
+
+func joinInt32(idArray map[int32]bool) (result string) {
+	sep := ""
+	for id, _ := range idArray {
+		result += sep
+		sep = ", "
+		result += fmt.Sprintf("%d", id)
+	}
+	return result
+}
+
+func GetPostsIDByIDs(idArray map[int32]bool, threadID int) []int32 {
+
+	rows, err := common.GetPool().Query("SELECT id FROM posts WHERE thread = $1 AND id = ANY (ARRAY["+joinInt32(idArray)+"])", threadID)
+	defer rows.Close()
+	if err != nil {
+		panic(err)
+	}
+
+	resultArray := make([]int32, 0, len(idArray))
+
+	for rows.Next() {
+		var id int32
+		err := rows.Scan(&id)
+		if err != nil {
+			panic(err)
+		}
+		resultArray = append(resultArray, id)
+	}
+
+	return resultArray
 }
 
 func GetParentPosts(id int) []models.Post {

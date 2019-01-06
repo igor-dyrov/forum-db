@@ -17,25 +17,19 @@ import (
 	"github.com/igor-dyrov/forum-db/src/models"
 )
 
-// func requiredParents(posts []models.Post) []int {
+func uniqueStrings(strArray []string) (result map[string]bool) {
+	for _, s := range strArray {
+		result[s] = true
+	}
+	return result
+}
 
-// 	parents := make(map[int]bool)
-// 	requiredParents := make([]int, 0, len(posts))
-
-// 	for i := 0; i < len(posts); i++ {
-// 		parents[posts[i].Parent] = true
-// 	}
-
-// 	parents[0] = false
-
-// 	for id, isRequired := range parents {
-// 		if isRequired {
-// 			requiredParents = append(requiredParents, id)
-// 		}
-// 	}
-
-// 	return requiredParents
-// }
+func uniqueIDs(idArray []int32) (result map[int32]bool) {
+	for _, s := range idArray {
+		result[s] = true
+	}
+	return result
+}
 
 func CreatePosts(w http.ResponseWriter, request *http.Request) {
 
@@ -63,24 +57,38 @@ func CreatePosts(w http.ResponseWriter, request *http.Request) {
 		return
 	}
 
-	db := common.GetDB()
+	uniqueParentIDs := make(map[int32]bool)
+	uniqueAuthors := make(map[string]bool)
 
 	for i := range posts {
 		posts[i].Forum = forumSlug
 		posts[i].Thread = threadID
 		posts[i].Created = curTime
 
-		if !getters.UserExists(posts[i].Author) {
-			WriteNotFoundMessage(w, "Can't find thread author by nickname: "+posts[i].Author)
-			return
+		uniqueAuthors[posts[i].Author] = true
+		if posts[i].Parent != 0 {
+			uniqueParentIDs[posts[i].Parent] = true
 		}
+	}
 
-		if posts[i].Parent != 0 && !getters.CheckParent(posts[i].Parent, posts[i].Thread) {
-			WriteResponce(w, 409, models.ResponseMessage{Message: "Parent post was created in another thread"})
-			return
-		}
+	existedUsers := getters.GetUsersByNicknames(uniqueAuthors)
+	if len(existedUsers) != len(uniqueAuthors) {
+		WriteNotFoundMessage(w, "Can't find authors")
+		return
 
-		err := db.QueryRow(
+	}
+
+	if len(uniqueParentIDs) != 0 && len(getters.GetPostsIDByIDs(uniqueParentIDs, threadID)) != len(uniqueParentIDs) {
+		WriteResponce(w, 409, models.ResponseMessage{Message: "Parent post was created in another thread"})
+		return
+
+	}
+
+	pool := common.GetPool()
+
+	for i := range posts {
+
+		err := pool.QueryRow(
 			"INSERT INTO posts (author, created, forum, message, thread, parent, path) VALUES ($1, $2, $3, $4, $5, $6, $7) RETURNING id;",
 			posts[i].Author, posts[i].Created, posts[i].Forum,
 			posts[i].Message, posts[i].Thread, posts[i].Parent,
@@ -91,7 +99,7 @@ func CreatePosts(w http.ResponseWriter, request *http.Request) {
 		PanicIfError(err)
 	}
 
-	_, err = db.Exec("UPDATE forums SET posts = posts + $1 WHERE slug = $2", len(posts), forumSlug)
+	_, err = pool.Exec("UPDATE forums SET posts = posts + $1 WHERE slug = $2", len(posts), forumSlug)
 	PanicIfError(err)
 
 	WriteResponce(w, 201, posts)

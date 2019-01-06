@@ -20,6 +20,9 @@ func logMiddleware(next http.Handler) http.Handler {
 }
 
 func main() {
+
+	// runtime.GOMAXPROCS(runtime.NumCPU())
+
 	common.GetDB()
 	common.InitConnectionPool()
 
