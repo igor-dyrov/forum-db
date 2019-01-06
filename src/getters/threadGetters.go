@@ -10,16 +10,20 @@ import (
 	"github.com/igor-dyrov/forum-db/src/models"
 )
 
-func GetThreadById(id int) models.Thread {
-	db := common.GetDB()
-	var result models.Thread
-	rows, _ := db.Query(`SELECT * FROM threads WHERE id = $1`, id)
+func GetThreadById(id int) (bool, models.Thread) {
+
+	rows, err := common.GetPool().Query("SELECT id, coalesce(slug::text, ''), created, message, title, author, forum, votes FROM threads WHERE id = $1;", id)
+	defer rows.Close()
+	PanicIfError(err)
+
+	var thread models.Thread
 
 	for rows.Next() {
-		rows.Scan(&result.ID, &result.Slug, &result.Created, &result.Message, &result.Title, &result.Author, &result.Forum, &result.Votes)
-
+		PanicIfError(rows.Scan(&thread.ID, &thread.Slug, &thread.Created, &thread.Message, &thread.Title, &thread.Author, &thread.Forum, &thread.Votes))
+		return false, thread
 	}
-	return result
+
+	return false, thread
 }
 
 func GetThreadBySlug(slug string) models.Thread {
@@ -70,33 +74,28 @@ func ConnGetThreadBySlug(slug string, conn *pgx.Conn) *models.Thread {
 }
 
 func GetThreadBySlugOrID(slugOrId string) *models.Thread {
-	db := common.GetDB()
 
 	thread := new(models.Thread)
 
-	var rows *sql.Rows
+	var rows *pgx.Rows
 	id, err := strconv.Atoi(slugOrId)
 	if err == nil {
-		rows, err = db.Query("SELECT id, coalesce(slug::text, ''), created, message, title, author, forum, votes FROM threads WHERE id = $1;", id)
+		rows, err = common.GetPool().Query("SELECT id, coalesce(slug::text, ''), created, message, title, author, forum, votes FROM threads WHERE id = $1;", id)
 	} else {
-		rows, err = db.Query("SELECT id, coalesce(slug::text, ''), created, message, title, author, forum, votes FROM threads WHERE slug = $1;", slugOrId)
+		rows, err = common.GetPool().Query("SELECT id, coalesce(slug::text, ''), created, message, title, author, forum, votes FROM threads WHERE slug = $1;", slugOrId)
 	}
 	defer rows.Close()
-
-	if err != nil {
-		panic(err)
-	}
+	PanicIfError(err)
 
 	if rows.Next() {
 		err = rows.Scan(&thread.ID, &thread.Slug, &thread.Created, &thread.Message, &thread.Title, &thread.Author, &thread.Forum, &thread.Votes)
 		if err != nil {
 			panic(err)
 		}
-	} else {
-		return nil
+		return thread
 	}
 
-	return thread
+	return nil
 }
 
 func GetThreadIDAndForumBySlugOrID(slugOrId string) (bool, int, string) {
@@ -130,68 +129,71 @@ func GetThreadIDAndForumBySlugOrID(slugOrId string) (bool, int, string) {
 
 func GetThreads(forum string, limit string, since string, desc string) []models.Thread {
 	db := common.GetDB()
+
 	var rows *sql.Rows
 	var err error
 
 	if limit != "" {
 		if since != "" {
 			if desc == "true" {
-				rows, err = db.Query("SELECT * FROM threads WHERE forum = $1 AND created <= $2 ORDER BY created DESC LIMIT $3", forum, since, limit)
+				rows, err = db.Query("SELECT id, coalesce(slug::text, ''), created, message, title, author, forum, votes FROM threads WHERE forum = $1 AND created <= $2 ORDER BY created DESC LIMIT $3", forum, since, limit)
 			} else {
-				rows, err = db.Query("SELECT * FROM threads WHERE forum = $1 AND created >= $2 ORDER BY created ASC LIMIT $3", forum, since, limit)
+				rows, err = db.Query("SELECT id, coalesce(slug::text, ''), created, message, title, author, forum, votes FROM threads WHERE forum = $1 AND created >= $2 ORDER BY created ASC LIMIT $3", forum, since, limit)
 			}
 		} else {
 			if desc == "true" {
-				rows, err = db.Query("SELECT * FROM threads WHERE forum = $1 ORDER BY created DESC LIMIT $2", forum, limit)
+				rows, err = db.Query("SELECT id, coalesce(slug::text, ''), created, message, title, author, forum, votes FROM threads WHERE forum = $1 ORDER BY created DESC LIMIT $2", forum, limit)
 			} else {
-				rows, err = db.Query("SELECT * FROM threads WHERE forum = $1 ORDER BY created ASC LIMIT $2", forum, limit)
+				rows, err = db.Query("SELECT id, coalesce(slug::text, ''), created, message, title, author, forum, votes FROM threads WHERE forum = $1 ORDER BY created ASC LIMIT $2", forum, limit)
 			}
 		}
 	} else {
 		if since != "" {
 			if desc == "true" {
-				rows, err = db.Query("SELECT * FROM threads WHERE forum = $1 AND created <= $2 ORDER BY created DESC", forum, since)
+				rows, err = db.Query("SELECT id, coalesce(slug::text, ''), created, message, title, author, forum, votes FROM threads WHERE forum = $1 AND created <= $2 ORDER BY created DESC", forum, since)
 			} else {
-				rows, err = db.Query("SELECT * FROM threads WHERE forum = $1 AND created <= $2 ORDER BY created ASC", forum, since)
+				rows, err = db.Query("SELECT id, coalesce(slug::text, ''), created, message, title, author, forum, votes FROM threads WHERE forum = $1 AND created <= $2 ORDER BY created ASC", forum, since)
 			}
 		} else {
 			if desc == "true" {
-				rows, err = db.Query("SELECT * FROM threads WHERE forum = $1 ORDER BY created DESC", forum)
+				rows, err = db.Query("SELECT id, coalesce(slug::text, ''), created, message, title, author, forum, votes FROM threads WHERE forum = $1 ORDER BY created DESC", forum)
 			} else {
-				rows, err = db.Query("SELECT * FROM threads WHERE forum = $1 ORDER BY created ASC", forum)
+				rows, err = db.Query("SELECT id, coalesce(slug::text, ''), created, message, title, author, forum, votes FROM threads WHERE forum = $1 ORDER BY created ASC", forum)
 			}
 		}
 	}
+	defer rows.Close()
+	PanicIfError(err)
 
-	if err != nil {
-		return []models.Thread{}
-	}
 	var thread models.Thread
+
 	var result = make([]models.Thread, 0)
+
 	for rows.Next() {
 		err = rows.Scan(&thread.ID, &thread.Slug, &thread.Created, &thread.Message, &thread.Title, &thread.Author, &thread.Forum, &thread.Votes)
-		if err != nil {
-			return []models.Thread{}
-		}
+		PanicIfError(err)
 		result = append(result, thread)
 	}
 	return result
 }
 
 func GetThreadsByForum(forum string) []models.Thread {
-	db := common.GetDB()
-	rows, err := db.Query(`SELECT * FROM threads WHERE forum = $1`, forum)
-	if err != nil {
-		return []models.Thread{}
-	}
+
+	rows, err := common.GetPool().Query(
+		"SELECT id, coalesce(slug::text, ''), created, message, title, author, forum, votes FROM threads WHERE forum = $1",
+		forum,
+	)
+	defer rows.Close()
+	PanicIfError(err)
+
 	var thread models.Thread
+
 	var result = make([]models.Thread, 0)
+
 	for rows.Next() {
-		err = rows.Scan(&thread.ID, &thread.Slug, &thread.Created, &thread.Message, &thread.Title, &thread.Author, &thread.Forum, &thread.Votes)
-		if err != nil {
-			return []models.Thread{}
-		}
-		thread.ID = GetIdByNickname(thread.Author)
+		err := rows.Scan(&thread.ID, &thread.Slug, &thread.Created, &thread.Message, &thread.Title, &thread.Author, &thread.Forum, &thread.Votes)
+		PanicIfError(err)
+		// thread.ID = GetIdByNickname(thread.Author)
 		result = append(result, thread)
 	}
 	return result

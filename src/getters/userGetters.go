@@ -30,20 +30,20 @@ func GetUserByNickOrEmail(nickname string, email string) (bool, []models.User) {
 	return false, nil
 }
 
-func GetUserByNick(nickname string) models.User {
-	db := common.GetDB()
+func GetUserByNickname(nickname string) (bool, models.User) {
 
-	rows, _ := db.Query(`SELECT * from users WHERE nickname = $1`, nickname)
-	var gotUser models.User
-	//if err != nil {
-	//	return result
-	//}
+	rows, err := common.GetPool().Query("SELECT about, email, fullname, nickname, id from users WHERE nickname = $1;", nickname)
+	defer rows.Close()
+	PanicIfError(err)
 
-	for rows.Next() {
-		rows.Scan(&gotUser.About, &gotUser.Email, &gotUser.Fullname, &gotUser.Nickname, &gotUser.ID)
+	var user models.User
+
+	if rows.Next() {
+		PanicIfError(rows.Scan(&user.About, &user.Email, &user.Fullname, &user.Nickname, &user.ID))
+		return true, user
 	}
 
-	return gotUser
+	return false, user
 }
 
 func GetNickByEmail(email string) string {

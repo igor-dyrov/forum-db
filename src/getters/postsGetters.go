@@ -25,6 +25,24 @@ func CheckParent(parentId int32, thread int) bool {
 	return parentThread == thread
 }
 
+func GetPostByID(id int32) (bool, models.Post) {
+
+	rows, err := common.GetPool().
+		Query("select id, author, created, forum, isEdited, message, parent, thread from posts where id = $1;", id)
+	defer rows.Close()
+	PanicIfError(err)
+
+	if rows.Next() {
+		var result models.Post
+		err = rows.Scan(&result.Id, &result.Author, &result.Created, &result.Forum,
+			&result.IsEdited, &result.Message, &result.Parent, &result.Thread)
+		PanicIfError(err)
+		return true, result
+	}
+
+	return false, models.Post{}
+}
+
 func joinInt32(idArray map[int32]bool) (result string) {
 	sep := ""
 	for id, _ := range idArray {

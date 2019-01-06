@@ -63,108 +63,34 @@ func CreateThread(w http.ResponseWriter, request *http.Request) {
 }
 
 func GetThreads(w http.ResponseWriter, request *http.Request) {
+
 	var slug = mux.Vars(request)["slug"]
 
 	limit := request.URL.Query().Get("limit")
 	since := request.URL.Query().Get("since")
 	desc := request.URL.Query().Get("desc")
 
-	gotThreads := getters.GetThreadsByForum(slug)
-	if len(gotThreads) == 0 {
-		var msg models.ResponseMessage
-		msg.Message = "Can't find forum by slug: " + slug
-		output, err := json.Marshal(msg)
-		if err != nil {
-			http.Error(w, err.Error(), 500)
-			return
-		}
-		w.Header().Set("content-type", "application/json")
-		w.WriteHeader(404)
-		w.Write(output)
+	if !getters.ForumSlugExists(slug) {
+		WriteNotFoundMessage(w, "Can't find forum by slug: "+slug)
 		return
 	}
 
-	gotThreads = getters.GetThreads(slug, limit, since, desc)
-	output, err := json.Marshal(gotThreads)
-	if err != nil {
-		http.Error(w, err.Error(), 500)
-		return
-	}
-	w.Header().Set("content-type", "application/json")
-	w.WriteHeader(200)
-	w.Write(output)
+	gotThreads := getters.GetThreads(slug, limit, since, desc)
+
+	WriteResponce(w, 200, gotThreads)
 }
 
 func ThreadDetails(w http.ResponseWriter, request *http.Request) {
-	var slug_or_id = mux.Vars(request)["slug_or_id"]
-	db := common.GetDB()
 
-	var result models.Thread
-	result.ID = -1
-	id, err := strconv.Atoi(slug_or_id)
-	if err == nil {
-		rows, err := db.Query(`SELECT * FROM threads WHERE id = $1`, id)
-		if err != nil {
-			http.Error(w, err.Error(), 500)
-			return
-		}
-		for rows.Next() {
-			rows.Scan(&result.ID, &result.Slug, &result.Created, &result.Message, &result.Title,
-				&result.Author, &result.Forum, &result.Votes)
-		}
-		if err != nil {
-			http.Error(w, err.Error(), 500)
-			return
-		}
-		if result.ID == -1 {
-			var msg models.ResponseMessage
-			msg.Message = "Can`t find thread by id: " + slug_or_id
-			output, err := json.Marshal(msg)
-			if err != nil {
-				http.Error(w, err.Error(), 500)
-				return
-			}
-			w.Header().Set("content-type", "application/json")
-			w.WriteHeader(404)
-			w.Write(output)
-			return
-		}
-	} else {
-		rows, err := db.Query(`SELECT * FROM threads WHERE slug = $1`, slug_or_id)
-		if err != nil {
-			http.Error(w, err.Error(), 500)
-			return
-		}
-		for rows.Next() {
-			rows.Scan(&result.ID, &result.Slug, &result.Created, &result.Message, &result.Title,
-				&result.Author, &result.Forum, &result.Votes)
-		}
-		if err != nil {
-			http.Error(w, err.Error(), 500)
-			return
-		}
-		if result.ID == -1 {
-			var msg models.ResponseMessage
-			msg.Message = "Can`t find thread by slug: " + slug_or_id
-			output, err := json.Marshal(msg)
-			if err != nil {
-				http.Error(w, err.Error(), 500)
-				return
-			}
-			w.Header().Set("content-type", "application/json")
-			w.WriteHeader(404)
-			w.Write(output)
-			return
-		}
-	}
-	output, err := json.Marshal(result)
-	if err != nil {
-		http.Error(w, err.Error(), 500)
+	var slugOrID = mux.Vars(request)["slug_or_id"]
+
+	thread := getters.GetThreadBySlugOrID(slugOrID)
+	if thread == nil {
+		WriteNotFoundMessage(w, "Can't find thread by slug-or-id: "+slugOrID)
 		return
 	}
-	w.Header().Set("content-type", "application/json")
-	w.WriteHeader(200)
-	w.Write(output)
+
+	WriteResponce(w, 200, thread)
 }
 
 func UpdateThread(w http.ResponseWriter, request *http.Request) {

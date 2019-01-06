@@ -107,54 +107,42 @@ func CreatePosts(w http.ResponseWriter, request *http.Request) {
 
 func GetPost(w http.ResponseWriter, request *http.Request) {
 
-	id := mux.Vars(request)["id"]
+	id, err := strconv.ParseInt(mux.Vars(request)["id"], 10, 32)
+	PanicIfError(err)
+	postID := int32(id)
+
+	isPostExists, post := getters.GetPostByID(postID)
+	if !isPostExists {
+		WriteNotFoundMessage(w, "Can't find post post by id: "+mux.Vars(request)["id"])
+		return
+	}
+
 	related := request.URL.Query().Get("related")
 	additions := strings.Split(related, ",")
-	PostInfo := new(models.PostDetails)
-	db := common.GetDB()
-	var result models.Post
-	result.Id = -1
-	rows, err := db.Query(`SELECT * FROM posts WHERE id = $1`, id)
-	if err != nil {
-		http.Error(w, err.Error(), 500)
-		return
-	}
-	var gotPath string
-	for rows.Next() {
-		err = rows.Scan(&result.Id, &result.Author, &result.Created, &result.Forum,
-			&result.IsEdited, &result.Message, &result.Parent, &result.Thread, &gotPath)
-	}
-	if result.Id == -1 {
-		var msg models.ResponseMessage
-		msg.Message = `Can't find post post by id: ` + id
-		output, err := json.Marshal(msg)
-		if err != nil {
-			http.Error(w, err.Error(), 500)
-			return
-		}
-		w.Header().Set("content-type", "application/json")
-		w.WriteHeader(404)
-		w.Write(output)
-		return
-	}
-	//if len(gotPath) > 2 {
-	IDs := strings.Split(gotPath[1:len(gotPath)-1], ",")
-	for index := range IDs {
-		item, _ := strconv.ParseInt(IDs[index], 10, 32)
-		result.Path = append(result.Path, int32(item))
-	}
+
+	// if len(gotPath) > 2 {
+	// IDs := strings.Split(gotPath[1:len(gotPath)-1], ",")
+	// for index := range IDs {
+	// 	item, _ := strconv.ParseInt(IDs[index], 10, 32)
+	// 	result.Path = append(result.Path, int32(item))
+	// }
 	//}
-	PostInfo.Post = &result
+
+	PostInfo := new(models.PostDetails)
+
+	PostInfo.Post = &post
+
 	var tempUser models.User
 	var tempThread models.Thread
 	var tempForum models.Forum
+
 	for _, info := range additions {
 		if info == "user" {
-			tempUser = getters.GetUserByNick(result.Author)
+			_, tempUser = getters.GetUserByNickname(PostInfo.Post.Author)
 			PostInfo.Author = &tempUser
 		}
 		if info == "thread" {
-			tempThread = getters.GetThreadById(PostInfo.Post.Thread)
+			_, tempThread = getters.GetThreadById(PostInfo.Post.Thread)
 			PostInfo.Thread = &tempThread
 		}
 		if info == "forum" {
@@ -162,15 +150,8 @@ func GetPost(w http.ResponseWriter, request *http.Request) {
 			PostInfo.Forum = &tempForum
 		}
 	}
-	var output []byte
-	output, err = json.Marshal(PostInfo)
-	if err != nil {
-		http.Error(w, err.Error(), 500)
-		return
-	}
-	w.Header().Set("content-type", "application/json")
-	w.WriteHeader(200)
-	w.Write(output)
+
+	WriteResponce(w, 200, PostInfo)
 }
 
 func UpdatePost(w http.ResponseWriter, request *http.Request) {

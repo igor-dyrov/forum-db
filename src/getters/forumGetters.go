@@ -7,19 +7,17 @@ import (
 )
 
 func GetForumBySlug(slug string) models.Forum {
-	db := common.GetDB()
-	rows, err := db.Query("SELECT * from forums WHERE slug = $1", slug)
-	var result models.Forum
-	if err != nil {
-		return models.Forum{}
-	}
+	rows, err := common.GetPool().Query("SELECT id, slug, title, author, threads, posts from forums WHERE slug = $1", slug)
+	defer rows.Close()
+	PanicIfError(err)
+
+	var forum models.Forum
+
 	for rows.Next() {
-		err = rows.Scan(&result.ID, &result.Slug, &result.Title, &result.Author, &result.Threads, &result.Posts)
+		PanicIfError(rows.Scan(&forum.ID, &forum.Slug, &forum.Title, &forum.Author, &forum.Threads, &forum.Posts))
+		return forum
 	}
-	if err != nil {
-		return models.Forum{}
-	}
-	return result
+	return forum
 }
 
 func GetForumSlug(slug string, conn *pgx.Conn) string {
@@ -37,18 +35,18 @@ func GetForumSlug(slug string, conn *pgx.Conn) string {
 	return ""
 }
 
-func SlugExists(slug string) bool {
-	db := common.GetDB()
-	rows, err := db.Query(`SELECT title FROM forums WHERE slug = $1`, slug)
-	if err != nil {
-		return false
+func ForumSlugExists(slug string) bool {
+
+	rows, err := common.GetPool().Query("SELECT slug FROM forums WHERE slug = $1;", slug)
+	defer rows.Close()
+	PanicIfError(err)
+
+	if rows.Next() {
+		var slug string
+		err = rows.Scan(&slug)
+		PanicIfError(err)
+		return true
 	}
-	var title string
-	for rows.Next() {
-		err = rows.Scan(&title)
-	}
-	if err != nil || title == "" {
-		return false
-	}
-	return true
+
+	return false
 }
