@@ -255,8 +255,8 @@ func HandlePostRows(rows *sql.Rows, posts *[]models.Post) {
 			&result.IsEdited, &result.Message, &result.Parent, &result.Thread, &gotPath)
 		IDs := strings.Split(gotPath[1:len(gotPath)-1], ",")
 		for index := range IDs {
-			item, _ := strconv.Atoi(IDs[index])
-			result.Path = append(result.Path, item)
+			item, _ := strconv.ParseInt(IDs[index], 10, 32)
+			result.Path = append(result.Path, int32(item))
 		}
 		*posts = append(*posts, result)
 	}

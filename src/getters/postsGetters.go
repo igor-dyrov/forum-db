@@ -8,7 +8,7 @@ import (
 	"github.com/igor-dyrov/forum-db/src/models"
 )
 
-func CheckParent(parentId int, thread int) bool {
+func CheckParent(parentId int32, thread int) bool {
 	db := common.GetDB()
 	rows, err := db.Query(`SELECT thread FROM posts WHERE id = $1`, parentId)
 	if err != nil {
@@ -22,24 +22,6 @@ func CheckParent(parentId int, thread int) bool {
 		return false
 	}
 	return parentThread == thread
-}
-
-func GetPathById(id int) []int {
-	db := common.GetDB()
-	var result []int
-	var gotPath string
-	err := db.QueryRow(`SELECT path FROM posts WHERE id = $1`, id).Scan(&gotPath)
-	if len(gotPath) > 0 {
-		IDs := strings.Split(gotPath[1:len(gotPath)-1], ",")
-		for index := range IDs {
-			item, _ := strconv.Atoi(IDs[index])
-			result = append(result, item)
-		}
-	}
-	if err != nil {
-		return []int{}
-	}
-	return result
 }
 
 func GetParentPosts(id int) []models.Post {
@@ -57,8 +39,9 @@ func GetParentPosts(id int) []models.Post {
 		if len(gotPath) > 2 {
 			IDs := strings.Split(gotPath[1:len(gotPath)-1], ",")
 			for index := range IDs {
-				item, _ := strconv.Atoi(IDs[index])
-				result.Path = append(result.Path, item)
+				item, err := strconv.ParseInt(IDs[index], 10, 32)
+				PanicIfError(err)
+				result.Path = append(result.Path, int32(item))
 			}
 		}
 		posts = append(posts, result)

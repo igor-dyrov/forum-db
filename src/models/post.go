@@ -6,11 +6,11 @@ type Post struct {
 	Author   string    `json:"author"`
 	Created  time.Time `json:"created"`
 	Forum    string    `json:"forum"`
-	Id       int       `json:"id"`
+	Id       int32     `json:"id"`
 	Message  string    `json:"message"`
 	Thread   int       `json:"thread"`
-	Parent   int       `json:"parent"`
-	Path     []int     `json:"path"`
+	Parent   int32     `json:"parent"`
+	Path     []int32   `json:"path"`
 	IsEdited bool      `json:"isEdited"`
 }
 

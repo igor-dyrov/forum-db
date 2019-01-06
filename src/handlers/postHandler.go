@@ -17,25 +17,25 @@ import (
 	"github.com/igor-dyrov/forum-db/src/models"
 )
 
-func requiredParents(posts []models.Post) []int {
+// func requiredParents(posts []models.Post) []int {
 
-	parents := make(map[int]bool)
-	requiredParents := make([]int, 0, len(posts))
+// 	parents := make(map[int]bool)
+// 	requiredParents := make([]int, 0, len(posts))
 
-	for i := 0; i < len(posts); i++ {
-		parents[posts[i].Parent] = true
-	}
+// 	for i := 0; i < len(posts); i++ {
+// 		parents[posts[i].Parent] = true
+// 	}
 
-	parents[0] = false
+// 	parents[0] = false
 
-	for id, isRequired := range parents {
-		if isRequired {
-			requiredParents = append(requiredParents, id)
-		}
-	}
+// 	for id, isRequired := range parents {
+// 		if isRequired {
+// 			requiredParents = append(requiredParents, id)
+// 		}
+// 	}
 
-	return requiredParents
-}
+// 	return requiredParents
+// }
 
 func CreatePosts(w http.ResponseWriter, request *http.Request) {
 
@@ -74,6 +74,7 @@ func CreatePosts(w http.ResponseWriter, request *http.Request) {
 			WriteNotFoundMessage(w, "Can't find thread author by nickname: "+posts[i].Author)
 			return
 		}
+
 		if posts[i].Parent != 0 && !getters.CheckParent(posts[i].Parent, posts[i].Thread) {
 			WriteResponce(w, 409, models.ResponseMessage{Message: "Parent post was created in another thread"})
 			return
@@ -97,7 +98,8 @@ func CreatePosts(w http.ResponseWriter, request *http.Request) {
 }
 
 func GetPost(w http.ResponseWriter, request *http.Request) {
-	var id = mux.Vars(request)["id"]
+
+	id := mux.Vars(request)["id"]
 	related := request.URL.Query().Get("related")
 	additions := strings.Split(related, ",")
 	PostInfo := new(models.PostDetails)
@@ -130,8 +132,8 @@ func GetPost(w http.ResponseWriter, request *http.Request) {
 	//if len(gotPath) > 2 {
 	IDs := strings.Split(gotPath[1:len(gotPath)-1], ",")
 	for index := range IDs {
-		item, _ := strconv.Atoi(IDs[index])
-		result.Path = append(result.Path, item)
+		item, _ := strconv.ParseInt(IDs[index], 10, 32)
+		result.Path = append(result.Path, int32(item))
 	}
 	//}
 	PostInfo.Post = &result
