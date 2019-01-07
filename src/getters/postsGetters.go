@@ -9,22 +9,6 @@ import (
 	"github.com/igor-dyrov/forum-db/src/models"
 )
 
-func CheckParent(parentId int32, thread int) bool {
-	db := common.GetDB()
-	rows, err := db.Query(`SELECT thread FROM posts WHERE id = $1`, parentId)
-	if err != nil {
-		return false
-	}
-	var parentThread int
-	for rows.Next() {
-		rows.Scan(&parentThread)
-	}
-	if err != nil {
-		return false
-	}
-	return parentThread == thread
-}
-
 func GetPostByID(id int32) (bool, models.Post) {
 
 	rows, err := common.GetPool().

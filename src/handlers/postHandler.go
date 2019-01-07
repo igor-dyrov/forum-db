@@ -120,14 +120,6 @@ func GetPost(w http.ResponseWriter, request *http.Request) {
 	related := request.URL.Query().Get("related")
 	additions := strings.Split(related, ",")
 
-	// if len(gotPath) > 2 {
-	// IDs := strings.Split(gotPath[1:len(gotPath)-1], ",")
-	// for index := range IDs {
-	// 	item, _ := strconv.ParseInt(IDs[index], 10, 32)
-	// 	result.Path = append(result.Path, int32(item))
-	// }
-	//}
-
 	PostInfo := new(models.PostDetails)
 
 	PostInfo.Post = &post

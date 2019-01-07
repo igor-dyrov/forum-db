@@ -20,7 +20,7 @@ func GetThreadById(id int) (bool, models.Thread) {
 
 	for rows.Next() {
 		PanicIfError(rows.Scan(&thread.ID, &thread.Slug, &thread.Created, &thread.Message, &thread.Title, &thread.Author, &thread.Forum, &thread.Votes))
-		return false, thread
+		return true, thread
 	}
 
 	return false, thread
