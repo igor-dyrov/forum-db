@@ -78,15 +78,17 @@ func GetPostsIDByIDs(idArray map[int32]bool, threadID int) []int32 {
 func GetParentPosts(id int) []models.Post {
 	db := common.GetDB()
 	var posts []models.Post
+
 	rows, err := db.Query(`SELECT * FROM posts WHERE parent = 0 AND thread = $1 ORDER BY id`, id)
-	if err != nil {
-		return posts
-	}
+	defer rows.Close()
+	PanicIfError(err)
+
 	for rows.Next() {
 		var result models.Post
 		var gotPath string
-		err = rows.Scan(&result.Id, &result.Author, &result.Created, &result.Forum,
-			&result.IsEdited, &result.Message, &result.Parent, &result.Thread, &gotPath)
+		PanicIfError(rows.Scan(&result.Id, &result.Author, &result.Created, &result.Forum,
+			&result.IsEdited, &result.Message, &result.Parent, &result.Thread, &gotPath))
+
 		if len(gotPath) > 2 {
 			IDs := strings.Split(gotPath[1:len(gotPath)-1], ",")
 			for index := range IDs {

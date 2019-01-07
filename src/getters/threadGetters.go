@@ -88,10 +88,7 @@ func GetThreadBySlugOrID(slugOrId string) *models.Thread {
 	PanicIfError(err)
 
 	if rows.Next() {
-		err = rows.Scan(&thread.ID, &thread.Slug, &thread.Created, &thread.Message, &thread.Title, &thread.Author, &thread.Forum, &thread.Votes)
-		if err != nil {
-			panic(err)
-		}
+		PanicIfError(rows.Scan(&thread.ID, &thread.Slug, &thread.Created, &thread.Message, &thread.Title, &thread.Author, &thread.Forum, &thread.Votes))
 		return thread
 	}
 

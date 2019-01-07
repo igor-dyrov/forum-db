@@ -1,8 +1,8 @@
 package handlers
 
 import (
+	"fmt"
 	"strconv"
-	"strings"
 
 	"database/sql"
 	"encoding/json"
@@ -174,62 +174,59 @@ func UpdateThread(w http.ResponseWriter, request *http.Request) {
 }
 
 func HandlePostRows(rows *sql.Rows, posts *[]models.Post) {
+
 	for rows.Next() {
 		var result models.Post
 		var gotPath string
-		rows.Scan(&result.Id, &result.Author, &result.Created, &result.Forum,
-			&result.IsEdited, &result.Message, &result.Parent, &result.Thread, &gotPath)
-		IDs := strings.Split(gotPath[1:len(gotPath)-1], ",")
-		for index := range IDs {
-			item, _ := strconv.ParseInt(IDs[index], 10, 32)
-			result.Path = append(result.Path, int32(item))
-		}
+		PanicIfError(rows.Scan(&result.Id, &result.Author, &result.Created, &result.Forum,
+			&result.IsEdited, &result.Message, &result.Parent, &result.Thread, &gotPath))
+
+		// IDs := strings.Split(gotPath[1:len(gotPath)-1], ",")
+		// for index := range IDs {
+		// 	item, _ := strconv.ParseInt(IDs[index], 10, 32)
+		// 	result.Path = append(result.Path, int32(item))
+		// }
 		*posts = append(*posts, result)
 	}
 }
 
+// func getPostsByQuery(query string, params ...interface{}) []models.Post {
+// 	postArr := make([]models.Post, 0)
+
+// 	rows, err := common.GetPool().Query(query, params...)
+// 	defer rows.Close()
+// 	PanicIfError(err)
+
+// 	for rows.Next() {
+// 		var post model.Post
+// 	}
+// }
+
 func GetThreadPosts(w http.ResponseWriter, request *http.Request) {
+
 	var slug_or_id = mux.Vars(request)["slug_or_id"]
+
 	limit := request.URL.Query().Get("limit")
 	since := request.URL.Query().Get("since")
 	sort := request.URL.Query().Get("sort")
 	desc := request.URL.Query().Get("desc")
 
+	// fmt.Printf("%v | sort=%v limit=%v since=%v desc=%v\n", request.URL.Path, sort, limit, since, desc)
+
 	db := common.GetDB()
-	id, err := strconv.Atoi(slug_or_id) //try to get id
-	if err == nil {                     //got id
-		if !getters.ThreadExists(id) { //check user by id
-			var msg models.ResponseMessage
-			msg.Message = `Can't find post thread by id: ` + slug_or_id
-			output, err := json.Marshal(msg)
-			if err != nil {
-				http.Error(w, err.Error(), 500)
-				return
-			}
-			w.Header().Set("content-type", "application/json")
-			w.WriteHeader(404)
-			w.Write(output)
-			return
-		}
-	} else { // got slug
-		id = getters.GetIdBySlug(slug_or_id)
-		if id == -1 {
-			var msg models.ResponseMessage
-			msg.Message = `Can't find post thread by slug: ` + slug_or_id
-			output, err := json.Marshal(msg)
-			if err != nil {
-				http.Error(w, err.Error(), 500)
-				return
-			}
-			w.Header().Set("content-type", "application/json")
-			w.WriteHeader(404)
-			w.Write(output)
-			return
-		}
+
+	thread := getters.GetThreadBySlugOrID(slug_or_id)
+	if thread == nil {
+		WriteNotFoundMessage(w, "Can't find post thread by id: "+slug_or_id)
+		return
 	}
+
+	id := thread.ID
+	var err error
 
 	var posts = make([]models.Post, 0)
 	var req = `SELECT * FROM posts WHERE thread = ` + strconv.Itoa(id) + ` `
+
 	if sort == "flat" || sort == "" {
 		if limit != "" {
 			if desc == "false" || desc == "" {
@@ -261,21 +258,14 @@ func GetThreadPosts(w http.ResponseWriter, request *http.Request) {
 			}
 		}
 		rows, err := db.Query(req)
-		if err != nil {
-			http.Error(w, err.Error(), 500)
-			return
-		}
+		defer rows.Close()
+		PanicIfError(err)
+
 		HandlePostRows(rows, &posts)
-		output, err := json.Marshal(posts)
-		if err != nil {
-			http.Error(w, err.Error(), 500)
-			return
-		}
-		w.Header().Set("content-type", "application/json")
-		w.WriteHeader(200)
-		w.Write(output)
+		WriteResponce(w, 200, posts)
 		return
 	}
+
 	var rows *sql.Rows
 	if sort == "tree" {
 		if limit != "" {
@@ -292,7 +282,7 @@ func GetThreadPosts(w http.ResponseWriter, request *http.Request) {
 		WHERE p1.thread = $1 ORDER BY path DESC LIMIT $3`, id, since, limit)
 				} else {
 					rows, err = db.Query(`SELECT * FROM posts WHERE thread = $1 ORDER BY path DESC LIMIT $2`, id, limit)
-					req += `ORDER BY path DESC LIMIT ` + limit
+					// req += `ORDER BY path DESC LIMIT ` + limit
 				}
 			}
 		} else {
@@ -312,23 +302,24 @@ func GetThreadPosts(w http.ResponseWriter, request *http.Request) {
 				}
 			}
 		}
-		if err != nil {
-			http.Error(w, err.Error(), 500)
-			return
-		}
+
+		PanicIfError(err)
+		defer rows.Close()
 		HandlePostRows(rows, &posts)
+
 	} else if sort == "parent_tree" {
 		parentPosts := getters.GetParentPosts(id)
+
+		fmt.Printf("%v | %v limit=%v since=%v desc=%v -> len(parents)=%d\n", request.URL.Path, sort, limit, since, desc, len(parentPosts))
+
 		pageSize, _ := strconv.Atoi(limit)
 		if desc == "false" || desc == "" {
 			if since == "" {
 				for i := range parentPosts {
 					if i < pageSize {
 						rows, err := db.Query("SELECT * FROM posts WHERE thread = $1 AND path[1] = $2 ORDER BY path ASC, id ASC", id, parentPosts[i].Id)
-						if err != nil {
-							http.Error(w, err.Error(), 500)
-							return
-						}
+						defer rows.Close()
+						PanicIfError(err)
 						HandlePostRows(rows, &posts)
 					}
 				}
@@ -337,10 +328,8 @@ func GetThreadPosts(w http.ResponseWriter, request *http.Request) {
 					if i <= pageSize {
 						rows, err := db.Query("SELECT p1.* FROM posts AS p1 JOIN posts AS p2 ON p1.thread = $1 AND p1.path[1] > p2.path[1]"+
 							" AND p2.id = $2 WHERE p1.path[1] = $3 ORDER BY p1.path ASC, p1.id ASC", id, since, parentPosts[i].Id)
-						if err != nil {
-							http.Error(w, err.Error(), 500)
-							return
-						}
+						defer rows.Close()
+						PanicIfError(err)
 						HandlePostRows(rows, &posts)
 					}
 				}
@@ -351,12 +340,8 @@ func GetThreadPosts(w http.ResponseWriter, request *http.Request) {
 					if i < pageSize {
 						var lastParent = parentPosts[len(parentPosts)-1-i].Id
 						rows, err := db.Query("SELECT * FROM posts WHERE thread = $1 AND path[1] = $2 ORDER BY path ASC, id ASC", id, lastParent)
-						// log.Println(limit, since, sort, desc)
-						// log.Println("here")
-						if err != nil {
-							http.Error(w, err.Error(), 500)
-							return
-						}
+						defer rows.Close()
+						PanicIfError(err)
 						HandlePostRows(rows, &posts)
 					}
 				}
@@ -366,22 +351,14 @@ func GetThreadPosts(w http.ResponseWriter, request *http.Request) {
 						var lastParent = parentPosts[len(parentPosts)-1-i].Id
 						rows, err := db.Query("SELECT p1.* FROM posts AS p1 JOIN posts AS p2 ON p1.thread = $1 AND p1.path[1] < p2.path[1]"+
 							" AND p2.id = $2 WHERE p1.path[1] = $3 ORDER BY p1.path ASC, p1.id ASC", id, since, lastParent)
-						if err != nil {
-							http.Error(w, err.Error(), 500)
-							return
-						}
+						defer rows.Close()
+						PanicIfError(err)
 						HandlePostRows(rows, &posts)
 					}
 				}
 			}
 		}
 	}
-	output, err := json.Marshal(posts)
-	if err != nil {
-		http.Error(w, err.Error(), 500)
-		return
-	}
-	w.Header().Set("content-type", "application/json")
-	w.WriteHeader(200)
-	w.Write(output)
+
+	WriteResponce(w, 200, posts)
 }

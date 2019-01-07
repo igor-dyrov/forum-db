@@ -2,3 +2,5 @@
 .vscode
 test/*.html
 *.dat.gz
+*.best.txt
+*.log
