@@ -50,7 +50,7 @@ CREATE TABLE posts (
   created   TIMESTAMP WITH TIME ZONE,
   forum     CITEXT     REFERENCES forums(slug),
   isEdited  BOOLEAN	   DEFAULT FALSE,
-  message   TEXT	     NOT NULL,
+  message   TEXT	   NOT NULL,
   parent    INTEGER	   DEFAULT 0,
   thread    INTEGER	   NOT NULL REFERENCES threads(id),
   

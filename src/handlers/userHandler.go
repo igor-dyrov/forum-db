@@ -248,7 +248,7 @@ func GetForumUsers(w http.ResponseWriter, request *http.Request) {
 
 	query := fmt.Sprintf(
 		"SELECT nickname, fullname, about, email FROM users u JOIN forum_users uf ON u.nickname = uf.username"+
-			" WHERE uf.forum = '%s' %s ORDER BY u.nickname %s %s;",
+			" WHERE uf.forum = '%s' %s ORDER BY uf.username %s %s;",
 		forum.Slug, sinceStr, order, limitStr,
 	)
 
