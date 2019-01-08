@@ -124,20 +124,21 @@ func GetPost(w http.ResponseWriter, request *http.Request) {
 
 	PostInfo.Post = &post
 
-	var tempUser models.User
-	var tempThread models.Thread
-	var tempForum models.Forum
-
 	for _, info := range additions {
 		if info == "user" {
+			var tempUser models.User
+
 			_, tempUser = getters.GetUserByNickname(PostInfo.Post.Author)
 			PostInfo.Author = &tempUser
 		}
 		if info == "thread" {
+			var tempThread models.Thread
 			_, tempThread = getters.GetThreadById(PostInfo.Post.Thread)
 			PostInfo.Thread = &tempThread
 		}
 		if info == "forum" {
+			var tempForum models.Forum
+
 			tempForum = getters.GetForumBySlug(PostInfo.Post.Forum)
 			PostInfo.Forum = &tempForum
 		}

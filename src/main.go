@@ -15,16 +15,12 @@ import (
 
 func logMiddleware(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		if r.Method == "GET" {
-			fmt.Printf("%v -> ", r.URL.Path)
-		}
-
 		start := time.Now()
 		next.ServeHTTP(w, r)
 		dt := time.Since(start)
 
 		if r.Method == "GET" {
-			fmt.Printf("%v\n", dt)
+			fmt.Printf("% 8d -> %v\n", int64(dt/time.Microsecond), r.URL.Path)
 		}
 	})
 }
@@ -61,9 +57,9 @@ func main() {
 	router.HandleFunc(`/api/service/status`, handlers.GetStatus).Methods("GET")
 	router.HandleFunc(`/api/service/clear`, handlers.ClearAll).Methods("POST")
 
-	// logHandler := logMiddleware(router)
+	logHandler := logMiddleware(router)
 
 	log.Print("<Start server>")
 
-	log.Fatal(http.ListenAndServe(":5000", router))
+	log.Fatal(http.ListenAndServe(":5000", logHandler))
 }

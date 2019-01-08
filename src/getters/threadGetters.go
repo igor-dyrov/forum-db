@@ -107,47 +107,50 @@ func GetThreads(forum string, limit string, since string, desc string) []models.
 	var rows *pgx.Rows
 	var err error
 
+	req := "SELECT id, coalesce(slug::text, ''), created, message, title, author, forum, votes FROM threads "
+
 	if limit != "" {
 		if since != "" {
 			if desc == "true" {
-				rows, err = db.Query("SELECT id, coalesce(slug::text, ''), created, message, title, author, forum, votes FROM threads WHERE forum = $1 AND created <= $2 ORDER BY created DESC LIMIT $3", forum, since, limit)
+				rows, err = db.Query(req+"WHERE forum = $1 AND created <= $2 ORDER BY created DESC LIMIT $3", forum, since, limit)
 			} else {
-				rows, err = db.Query("SELECT id, coalesce(slug::text, ''), created, message, title, author, forum, votes FROM threads WHERE forum = $1 AND created >= $2 ORDER BY created ASC LIMIT $3", forum, since, limit)
+				rows, err = db.Query(req+"WHERE forum = $1 AND created >= $2 ORDER BY created ASC LIMIT $3", forum, since, limit)
 			}
 		} else {
 			if desc == "true" {
-				rows, err = db.Query("SELECT id, coalesce(slug::text, ''), created, message, title, author, forum, votes FROM threads WHERE forum = $1 ORDER BY created DESC LIMIT $2", forum, limit)
+				rows, err = db.Query(req+"WHERE forum = $1 ORDER BY created DESC LIMIT $2", forum, limit)
 			} else {
-				rows, err = db.Query("SELECT id, coalesce(slug::text, ''), created, message, title, author, forum, votes FROM threads WHERE forum = $1 ORDER BY created ASC LIMIT $2", forum, limit)
+				rows, err = db.Query(req+"WHERE forum = $1 ORDER BY created ASC LIMIT $2", forum, limit)
 			}
 		}
 	} else {
 		if since != "" {
 			if desc == "true" {
-				rows, err = db.Query("SELECT id, coalesce(slug::text, ''), created, message, title, author, forum, votes FROM threads WHERE forum = $1 AND created <= $2 ORDER BY created DESC", forum, since)
+				rows, err = db.Query(req+"WHERE forum = $1 AND created <= $2 ORDER BY created DESC", forum, since)
 			} else {
-				rows, err = db.Query("SELECT id, coalesce(slug::text, ''), created, message, title, author, forum, votes FROM threads WHERE forum = $1 AND created <= $2 ORDER BY created ASC", forum, since)
+				rows, err = db.Query(req+"WHERE forum = $1 AND created <= $2 ORDER BY created ASC", forum, since)
 			}
 		} else {
 			if desc == "true" {
-				rows, err = db.Query("SELECT id, coalesce(slug::text, ''), created, message, title, author, forum, votes FROM threads WHERE forum = $1 ORDER BY created DESC", forum)
+				rows, err = db.Query(req+"WHERE forum = $1 ORDER BY created DESC", forum)
 			} else {
-				rows, err = db.Query("SELECT id, coalesce(slug::text, ''), created, message, title, author, forum, votes FROM threads WHERE forum = $1 ORDER BY created ASC", forum)
+				rows, err = db.Query(req+"WHERE forum = $1 ORDER BY created ASC", forum)
 			}
 		}
 	}
+
 	defer rows.Close()
 	PanicIfError(err)
 
 	var thread models.Thread
 
-	var result = make([]models.Thread, 0)
+	result := make([]models.Thread, 0)
 
 	for rows.Next() {
-		PanicIfError(rows.Scan(&thread.ID, &thread.Slug,
-			&thread.Created, &thread.Message, &thread.Title, &thread.Author, &thread.Forum, &thread.Votes))
+		PanicIfError(rows.Scan(&thread.ID, &thread.Slug, &thread.Created, &thread.Message, &thread.Title, &thread.Author, &thread.Forum, &thread.Votes))
 		result = append(result, thread)
 	}
+
 	return result
 }
 

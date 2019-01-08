@@ -38,6 +38,8 @@ CREATE TABLE threads
 CREATE UNIQUE INDEX threads_id_forum_idx on threads(id, forum);            -- ?
 CREATE UNIQUE INDEX threads_slug_id_forum_idx on threads(slug, id, forum); -- ? 
 
+-- GetThreads - ?
+CREATE UNIQUE INDEX threads_forum_created_idx on threads(forum, created); -- ? 
 
 
 CREATE TABLE posts (
@@ -71,11 +73,7 @@ CREATE TABLE votes (
 -- --------------------------- Triggers ---------------------------
 
 CREATE FUNCTION fix_path() RETURNS trigger AS $fix_path$
--- DECLARE
-  -- parent_id INTEGER;
-
 BEGIN
-  -- parent_id := new.parent;
   new.path := array_append((SELECT path from posts WHERE thread = new.thread AND id = new.parent), new.id);
  -- insert into forum_users (forum, username) values (new.forum, new.author) ON conflict (forum, username) do nothing;
   RETURN new;

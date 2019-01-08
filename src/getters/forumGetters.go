@@ -17,6 +17,7 @@ func GetForumBySlug(slug string) models.Forum {
 		PanicIfError(rows.Scan(&forum.ID, &forum.Slug, &forum.Title, &forum.Author, &forum.Threads, &forum.Posts))
 		return forum
 	}
+
 	return forum
 }
 

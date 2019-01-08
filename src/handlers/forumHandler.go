@@ -74,28 +74,16 @@ func CreateForum(w http.ResponseWriter, request *http.Request) {
 }
 
 func GetForum(w http.ResponseWriter, request *http.Request) {
-	var slug = mux.Vars(request)["slug"]
-	var gotForum = getters.GetForumBySlug(slug)
-	if gotForum.Author != "" {
-		output, err := json.Marshal(gotForum)
-		if err != nil {
-			http.Error(w, err.Error(), 500)
-			return
-		}
-		w.Header().Set("content-type", "application/json")
-		w.WriteHeader(200)
-		w.Write(output)
+
+	slug := mux.Vars(request)["slug"]
+
+	forum := getters.GetForumBySlug(slug)
+
+	if forum.Author != "" {
+		WriteResponce(w, 200, forum)
 		return
-	} else {
-		var message models.ResponseMessage
-		message.Message = "Can`t find forum with slug: " + slug
-		output, err := json.Marshal(message)
-		if err != nil {
-			http.Error(w, err.Error(), 500)
-			return
-		}
-		w.Header().Set("content-type", "application/json")
-		w.WriteHeader(404)
-		w.Write(output)
 	}
+
+	WriteNotFoundMessage(w, "Can`t find forum with slug: "+slug)
+
 }
