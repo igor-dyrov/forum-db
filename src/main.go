@@ -42,7 +42,7 @@ func main() {
 	router.HandleFunc(`/api/forum/{slug}/details`, handlers.GetForum).Methods("GET")
 	router.HandleFunc(`/api/forum/{slug}/create`, handlers.CreateThread).Methods("POST")
 	router.HandleFunc(`/api/forum/{slug}/threads`, handlers.GetThreads).Methods("GET")
-	router.HandleFunc(`/api/forum/{slug}/users`, handlers.GetThreadUsers).Methods("GET")
+	router.HandleFunc(`/api/forum/{slug}/users`, handlers.GetForumUsers).Methods("GET")
 
 	router.HandleFunc(`/api/thread/{slug_or_id}/create`, handlers.CreatePosts).Methods("POST")
 	router.HandleFunc(`/api/thread/{slug_or_id}/vote`, handlers.CreateVote).Methods("POST")

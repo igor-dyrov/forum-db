@@ -57,6 +57,9 @@ func CreateThread(w http.ResponseWriter, request *http.Request) {
 	_, err = conn.Exec("UPDATE forums SET threads = threads + 1 WHERE slug = $1", thread.Forum)
 	PanicIfError(err)
 
+	_, err = conn.Exec("insert into forum_users (forum, username) values ($1, $2) ON conflict (forum, username) do nothing;", thread.Forum, thread.Author)
+	PanicIfError(err)
+
 	WriteResponce(w, 201, thread)
 }
 
