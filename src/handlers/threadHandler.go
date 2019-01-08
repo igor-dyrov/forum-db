@@ -1,7 +1,6 @@
 package handlers
 
 import (
-	"fmt"
 	"strconv"
 
 	"database/sql"
@@ -181,26 +180,9 @@ func HandlePostRows(rows *sql.Rows, posts *[]models.Post) {
 		PanicIfError(rows.Scan(&result.Id, &result.Author, &result.Created, &result.Forum,
 			&result.IsEdited, &result.Message, &result.Parent, &result.Thread, &gotPath))
 
-		// IDs := strings.Split(gotPath[1:len(gotPath)-1], ",")
-		// for index := range IDs {
-		// 	item, _ := strconv.ParseInt(IDs[index], 10, 32)
-		// 	result.Path = append(result.Path, int32(item))
-		// }
 		*posts = append(*posts, result)
 	}
 }
-
-// func getPostsByQuery(query string, params ...interface{}) []models.Post {
-// 	postArr := make([]models.Post, 0)
-
-// 	rows, err := common.GetPool().Query(query, params...)
-// 	defer rows.Close()
-// 	PanicIfError(err)
-
-// 	for rows.Next() {
-// 		var post model.Post
-// 	}
-// }
 
 func GetThreadPosts(w http.ResponseWriter, request *http.Request) {
 
@@ -213,8 +195,6 @@ func GetThreadPosts(w http.ResponseWriter, request *http.Request) {
 
 	// fmt.Printf("%v | sort=%v limit=%v since=%v desc=%v\n", request.URL.Path, sort, limit, since, desc)
 
-	db := common.GetDB()
-
 	thread := getters.GetThreadBySlugOrID(slug_or_id)
 	if thread == nil {
 		WriteNotFoundMessage(w, "Can't find post thread by id: "+slug_or_id)
@@ -222,143 +202,19 @@ func GetThreadPosts(w http.ResponseWriter, request *http.Request) {
 	}
 
 	id := thread.ID
-	var err error
-
-	var posts = make([]models.Post, 0)
-	var req = `SELECT * FROM posts WHERE thread = ` + strconv.Itoa(id) + ` `
 
 	if sort == "flat" || sort == "" {
-		if limit != "" {
-			if desc == "false" || desc == "" {
-				if since != "" {
-					req += `AND id >` + since + ` ORDER BY id ASC LIMIT ` + limit
-				} else {
-					req += `ORDER BY id LIMIT ` + limit
-				}
-			} else {
-				if since != "" {
-					req += `AND id <` + since + ` ORDER BY id DESC LIMIT ` + limit
-				} else {
-					req += `ORDER BY id DESC LIMIT ` + limit
-				}
-			}
-		} else {
-			if desc == "false" || desc == "" {
-				if since != "" {
-					req += `AND id >` + since + ` ORDER BY id ASC`
-				} else {
-					req += `ORDER BY id`
-				}
-			} else {
-				if since != "" {
-					req += `AND id <` + since + ` ORDER BY id DESC`
-				} else {
-					req += `ORDER BY id DESC`
-				}
-			}
-		}
-		rows, err := db.Query(req)
-		defer rows.Close()
-		PanicIfError(err)
-
-		HandlePostRows(rows, &posts)
-		WriteResponce(w, 200, posts)
+		WriteResponce(w, 200, getters.GetPostsFlatSort(id, limit, since, desc == "true"))
 		return
 	}
 
-	var rows *sql.Rows
 	if sort == "tree" {
-		if limit != "" {
-			if desc == "false" || desc == "" {
-				if since != "" {
-					rows, err = db.Query(`SELECT p1.* FROM posts AS p1 JOIN posts AS p2 ON p1.path > p2.path AND p2.id = $2 
-		WHERE p1.thread = $1 ORDER BY path ASC LIMIT $3`, id, since, limit)
-				} else {
-					rows, err = db.Query(`SELECT * FROM posts WHERE thread = $1 ORDER BY path LIMIT $2`, id, limit)
-				}
-			} else {
-				if since != "" {
-					rows, err = db.Query(`SELECT p1.* FROM posts AS p1 JOIN posts AS p2 ON p1.path < p2.path AND p2.id = $2 
-		WHERE p1.thread = $1 ORDER BY path DESC LIMIT $3`, id, since, limit)
-				} else {
-					rows, err = db.Query(`SELECT * FROM posts WHERE thread = $1 ORDER BY path DESC LIMIT $2`, id, limit)
-					// req += `ORDER BY path DESC LIMIT ` + limit
-				}
-			}
-		} else {
-			if desc == "false" || desc == "" {
-				if since != "" {
-					rows, err = db.Query(`SELECT p1.* FROM posts AS p1 JOIN posts AS p2 ON p1.path > p2.path AND p2.id = $2 
-		WHERE p1.thread = $1 ORDER BY path ASC`, id, since)
-				} else {
-					rows, err = db.Query(`SELECT * FROM posts WHERE thread = $1 ORDER BY path ASC`, id)
-				}
-			} else {
-				if since != "" {
-					rows, err = db.Query(`SELECT p1.* FROM posts AS p1 JOIN posts AS p2 ON p1.path > p2.path AND p2.id = $2 
-		WHERE p1.thread = $1 ORDER BY path DESC`, id, since)
-				} else {
-					rows, err = db.Query(`SELECT * FROM posts WHERE thread = $1 ORDER BY path DESC`, id)
-				}
-			}
-		}
-
-		PanicIfError(err)
-		defer rows.Close()
-		HandlePostRows(rows, &posts)
-
-	} else if sort == "parent_tree" {
-		parentPosts := getters.GetParentPosts(id)
-
-		fmt.Printf("%v | %v limit=%v since=%v desc=%v -> len(parents)=%d\n", request.URL.Path, sort, limit, since, desc, len(parentPosts))
-
-		pageSize, _ := strconv.Atoi(limit)
-		if desc == "false" || desc == "" {
-			if since == "" {
-				for i := range parentPosts {
-					if i < pageSize {
-						rows, err := db.Query("SELECT * FROM posts WHERE thread = $1 AND path[1] = $2 ORDER BY path ASC, id ASC", id, parentPosts[i].Id)
-						defer rows.Close()
-						PanicIfError(err)
-						HandlePostRows(rows, &posts)
-					}
-				}
-			} else {
-				for i := range parentPosts {
-					if i <= pageSize {
-						rows, err := db.Query("SELECT p1.* FROM posts AS p1 JOIN posts AS p2 ON p1.thread = $1 AND p1.path[1] > p2.path[1]"+
-							" AND p2.id = $2 WHERE p1.path[1] = $3 ORDER BY p1.path ASC, p1.id ASC", id, since, parentPosts[i].Id)
-						defer rows.Close()
-						PanicIfError(err)
-						HandlePostRows(rows, &posts)
-					}
-				}
-			}
-		} else if desc == "true" {
-			if since == "" {
-				for i := range parentPosts {
-					if i < pageSize {
-						var lastParent = parentPosts[len(parentPosts)-1-i].Id
-						rows, err := db.Query("SELECT * FROM posts WHERE thread = $1 AND path[1] = $2 ORDER BY path ASC, id ASC", id, lastParent)
-						defer rows.Close()
-						PanicIfError(err)
-						HandlePostRows(rows, &posts)
-					}
-				}
-			} else {
-				for i := range parentPosts {
-					if i <= pageSize {
-						var lastParent = parentPosts[len(parentPosts)-1-i].Id
-						rows, err := db.Query("SELECT p1.* FROM posts AS p1 JOIN posts AS p2 ON p1.thread = $1 AND p1.path[1] < p2.path[1]"+
-							" AND p2.id = $2 WHERE p1.path[1] = $3 ORDER BY p1.path ASC, p1.id ASC", id, since, lastParent)
-						defer rows.Close()
-						PanicIfError(err)
-						HandlePostRows(rows, &posts)
-					}
-				}
-			}
-		}
+		WriteResponce(w, 200, getters.GetPostsTreeSort(id, limit, since, desc == "true"))
+		return
 	}
 
-	WriteResponce(w, 200, posts)
+	if sort == "parent_tree" {
+		WriteResponce(w, 200, getters.GetPostsParentTreeSort(id, limit, since, desc == "true"))
+		return
+	}
 }

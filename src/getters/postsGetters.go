@@ -3,10 +3,10 @@ package getters
 import (
 	"fmt"
 	"strconv"
-	"strings"
 
 	"github.com/igor-dyrov/forum-db/src/common"
 	"github.com/igor-dyrov/forum-db/src/models"
+	"github.com/jackc/pgx"
 )
 
 func GetPostByID(id int32) (bool, models.Post) {
@@ -73,15 +73,165 @@ func GetParentPosts(id int) []models.Post {
 		PanicIfError(rows.Scan(&result.Id, &result.Author, &result.Created, &result.Forum,
 			&result.IsEdited, &result.Message, &result.Parent, &result.Thread, &gotPath))
 
-		if len(gotPath) > 2 {
-			IDs := strings.Split(gotPath[1:len(gotPath)-1], ",")
-			for index := range IDs {
-				item, err := strconv.ParseInt(IDs[index], 10, 32)
-				PanicIfError(err)
-				result.Path = append(result.Path, int32(item))
-			}
-		}
 		posts = append(posts, result)
 	}
+	return posts
+}
+
+// ---------------------------------------------------------------------------------------------------------
+
+func handlePostRows(rows *pgx.Rows) []models.Post {
+	posts := make([]models.Post, 0)
+
+	for rows.Next() {
+		var result models.Post
+		PanicIfError(rows.Scan(&result.Id, &result.Author, &result.Created, &result.Forum,
+			&result.IsEdited, &result.Message, &result.Parent, &result.Thread))
+		posts = append(posts, result)
+	}
+
+	return posts
+}
+
+func GetPostsFlatSort(threadID int, limit, since string, desc bool) []models.Post {
+
+	req := "SELECT id, author, created, forum, isEdited, message, parent, thread FROM posts WHERE thread = $1"
+
+	if limit != "" {
+		if !desc {
+			if since != "" {
+				req += "AND id >" + since + " ORDER BY id ASC LIMIT " + limit
+			} else {
+				req += "ORDER BY id LIMIT " + limit
+			}
+		} else {
+			if since != "" {
+				req += "AND id <" + since + " ORDER BY id DESC LIMIT " + limit
+			} else {
+				req += "ORDER BY id DESC LIMIT " + limit
+			}
+		}
+	} else {
+		if !desc {
+			if since != "" {
+				req += "AND id >" + since + " ORDER BY id ASC"
+			} else {
+				req += "ORDER BY id"
+			}
+		} else {
+			if since != "" {
+				req += "AND id <" + since + " ORDER BY id DESC"
+			} else {
+				req += "ORDER BY id DESC"
+			}
+		}
+	}
+
+	rows, err := common.GetPool().Query(req, threadID)
+	defer rows.Close()
+	PanicIfError(err)
+
+	return handlePostRows(rows)
+}
+
+func GetPostsTreeSort(threadID int, limit, since string, desc bool) []models.Post {
+
+	db := common.GetPool()
+
+	var rows *pgx.Rows
+	var err error
+	var req = "SELECT p1.id, p1.author, p1.created, p1.forum, p1.isEdited, p1.message, p1.parent, p1.thread FROM posts AS p1"
+
+	if limit != "" {
+		if !desc {
+			if since != "" {
+				rows, err = db.Query(req+" JOIN posts AS p2 ON p1.path > p2.path AND p2.id = $2 WHERE p1.thread = $1 ORDER BY p1.path ASC LIMIT $3", threadID, since, limit)
+			} else {
+				rows, err = db.Query(req+" WHERE thread = $1 ORDER BY p1.path LIMIT $2", threadID, limit)
+			}
+		} else {
+			if since != "" {
+				rows, err = db.Query(req+" JOIN posts AS p2 ON p1.path < p2.path AND p2.id = $2 WHERE p1.thread = $1 ORDER BY p1.path DESC LIMIT $3", threadID, since, limit)
+			} else {
+				rows, err = db.Query(req+" WHERE thread = $1 ORDER BY p1.path DESC LIMIT $2", threadID, limit)
+			}
+		}
+	} else {
+		if !desc {
+			if since != "" {
+				rows, err = db.Query(req+" JOIN posts AS p2 ON p1.path > p2.path AND p2.id = $2 WHERE p1.thread = $1 ORDER BY p1.path ASC", threadID, since)
+			} else {
+				rows, err = db.Query(req+" WHERE thread = $1 ORDER BY p1.path ASC", threadID)
+			}
+		} else {
+			if since != "" {
+				rows, err = db.Query(req+" JOIN posts AS p2 ON p1.path > p2.path AND p2.id = $2 WHERE p1.thread = $1 ORDER BY p1.path DESC", threadID, since)
+			} else {
+				rows, err = db.Query(req+" WHERE thread = $1 ORDER BY p1.path DESC", threadID)
+			}
+		}
+	}
+	defer rows.Close()
+	PanicIfError(err)
+
+	return handlePostRows(rows)
+}
+
+func GetPostsParentTreeSort(threadID int, limit, since string, desc bool) []models.Post {
+
+	posts := make([]models.Post, 0)
+
+	parentPosts := GetParentPosts(threadID)
+	pageSize, _ := strconv.Atoi(limit)
+	db := common.GetPool()
+
+	var req = "SELECT p1.id, p1.author, p1.created, p1.forum, p1.isEdited, p1.message, p1.parent, p1.thread FROM posts AS p1"
+
+	if !desc {
+		if since == "" {
+			for i := range parentPosts {
+				if i < pageSize {
+					rows, err := db.Query(req+" WHERE p1.thread = $1 AND p1.path[1] = $2 ORDER BY p1.path ASC, p1.id ASC", threadID, parentPosts[i].Id)
+					defer rows.Close()
+					PanicIfError(err)
+					posts = append(posts, handlePostRows(rows)...)
+				}
+			}
+		} else {
+			for i := range parentPosts {
+				if i <= pageSize {
+					rows, err := db.Query(req+" JOIN posts AS p2 ON p1.thread = $1 AND p1.path[1] > p2.path[1]"+
+						" AND p2.id = $2 WHERE p1.path[1] = $3 ORDER BY p1.path ASC, p1.id ASC", threadID, since, parentPosts[i].Id)
+					defer rows.Close()
+					PanicIfError(err)
+					posts = append(posts, handlePostRows(rows)...)
+				}
+			}
+		}
+	} else {
+		if since == "" {
+			for i := range parentPosts {
+				if i < pageSize {
+					var lastParent = parentPosts[len(parentPosts)-1-i].Id
+					rows, err := db.Query(req+" WHERE p1.thread = $1 AND p1.path[1] = $2 ORDER BY p1.path ASC, p1.id ASC", threadID, lastParent)
+					defer rows.Close()
+					PanicIfError(err)
+					posts = append(posts, handlePostRows(rows)...)
+				}
+			}
+		} else {
+			for i := range parentPosts {
+				if i <= pageSize {
+					var lastParent = parentPosts[len(parentPosts)-1-i].Id
+					rows, err := db.Query(req+" JOIN posts AS p2 ON p1.thread = $1 AND p1.path[1] < p2.path[1]"+
+						" AND p2.id = $2 WHERE p1.path[1] = $3 ORDER BY p1.path ASC, p1.id ASC", threadID, since, lastParent)
+					defer rows.Close()
+					PanicIfError(err)
+					posts = append(posts, handlePostRows(rows)...)
+				}
+			}
+		}
+	}
+
 	return posts
 }
