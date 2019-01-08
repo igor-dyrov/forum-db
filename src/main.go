@@ -20,7 +20,7 @@ func logMiddleware(next http.Handler) http.Handler {
 		dt := time.Since(start)
 
 		if r.Method == "GET" {
-			fmt.Printf("% 8d -> %v\n", int64(dt/time.Microsecond), r.URL.Path)
+			fmt.Printf("% 8d -> %v  %s\n", int64(dt/time.Microsecond), r.URL.Path, r.URL.Query().Get("sort"))
 		}
 	})
 }
