@@ -5,6 +5,8 @@ DROP TABLE IF EXISTS public.forums CASCADE;
 DROP TABLE IF EXISTS public.threads CASCADE;
 DROP TABLE IF EXISTS public.posts CASCADE;
 DROP TABLE IF EXISTS public.votes CASCADE;
+DROP TABLE IF EXISTS public.forum_users CASCADE;
+
 
 CREATE TABLE users (
 	about TEXT NOT NULL,
@@ -68,6 +70,14 @@ CREATE TABLE votes (
 );
 
 
+CREATE TABLE forum_users
+(
+  username  CITEXT	 NOT NULL   REFERENCES users(nickname),
+  forum     CITEXT   NOT NULL   REFERENCES forums(slug) ,
+
+  UNIQUE(forum, username)
+);
+
 
 
 -- --------------------------- Triggers ---------------------------
@@ -75,7 +85,7 @@ CREATE TABLE votes (
 CREATE FUNCTION fix_path() RETURNS trigger AS $fix_path$
 BEGIN
   new.path := array_append((SELECT path from posts WHERE thread = new.thread AND id = new.parent), new.id);
- -- insert into forum_users (forum, username) values (new.forum, new.author) ON conflict (forum, username) do nothing;
+  insert into forum_users (forum, username) values (new.forum, new.author) ON conflict (forum, username) do nothing;
   RETURN new;
 END;
 $fix_path$ LANGUAGE plpgsql;

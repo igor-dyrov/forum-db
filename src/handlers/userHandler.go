@@ -2,6 +2,7 @@ package handlers
 
 import (
 	"encoding/json"
+	"fmt"
 	"io/ioutil"
 	"net/http"
 
@@ -144,7 +145,7 @@ func UpdateUser(w http.ResponseWriter, request *http.Request) {
 	w.Write(output)
 }
 
-func GetForumUsers(w http.ResponseWriter, request *http.Request) {
+func GetForumUsers2(w http.ResponseWriter, request *http.Request) {
 
 	var slug = mux.Vars(request)["slug"]
 
@@ -206,6 +207,67 @@ func GetForumUsers(w http.ResponseWriter, request *http.Request) {
 		var gotUser models.User
 		PanicIfError(rows.Scan(&gotUser.About, &gotUser.Email, &gotUser.Fullname, &gotUser.Nickname, &gotUser.ID))
 		users = append(users, gotUser)
+	}
+
+	WriteResponce(w, 200, users)
+}
+
+func GetForumUsers(w http.ResponseWriter, request *http.Request) {
+
+	var slug = mux.Vars(request)["slug"]
+
+	limit := request.URL.Query().Get("limit")
+	since := request.URL.Query().Get("since")
+	descStr := request.URL.Query().Get("desc")
+	desc := descStr == "true"
+
+	forum := getters.GetForumBySlug(slug)
+	if forum.Slug == "" {
+		WriteNotFoundMessage(w, "Can`t find forum with slug: "+slug)
+		return
+	}
+
+	sinceStr := ""
+	if since != "" {
+		if desc {
+			sinceStr = " AND uf.username < '" + since + "'"
+		} else {
+			sinceStr = " AND uf.username > '" + since + "'"
+		}
+	}
+
+	order := " ASC"
+	if desc {
+		order = " DESC"
+	}
+
+	limitStr := ""
+	if limit != "" {
+		limitStr = " LIMIT " + limit
+	}
+
+	query := fmt.Sprintf(
+		"SELECT nickname, fullname, about, email FROM users u JOIN forum_users uf ON u.nickname = uf.username"+
+			" WHERE uf.forum = '%s' %s ORDER BY u.nickname %s %s;",
+		forum.Slug, sinceStr, order, limitStr,
+	)
+
+	rows, err := common.GetPool().Query(query)
+	defer rows.Close()
+	PanicIfError(err)
+
+	users := make([]models.User, 0)
+
+	for rows.Next() {
+		var user models.User
+		PanicIfError(rows.Scan(
+			&user.Nickname,
+			&user.Fullname,
+			&user.About,
+			&user.Email,
+		))
+
+		users = append(users, user)
 	}
 
 	WriteResponce(w, 200, users)

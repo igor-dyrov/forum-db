@@ -30,7 +30,7 @@ func ClearAll(w http.ResponseWriter, request *http.Request) {
 	conn := common.GetConnection()
 	defer common.Release(conn)
 
-	_, err := conn.Exec("TRUNCATE TABLE users, forums, threads, posts, votes")
+	_, err := conn.Exec("TRUNCATE TABLE forum_users, users, forums, threads, posts, votes")
 	PanicIfError(err)
 
 	w.WriteHeader(200)
