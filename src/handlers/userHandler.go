@@ -1,12 +1,12 @@
 package handlers
 
 import (
-	"database/sql"
 	"encoding/json"
 	"io/ioutil"
 	"net/http"
 
 	"github.com/gorilla/mux"
+	"github.com/jackc/pgx"
 
 	"github.com/igor-dyrov/forum-db/src/common"
 	"github.com/igor-dyrov/forum-db/src/getters"
@@ -144,28 +144,21 @@ func UpdateUser(w http.ResponseWriter, request *http.Request) {
 	w.Write(output)
 }
 
-func GetThreadUsers(w http.ResponseWriter, request *http.Request) {
+func GetForumUsers(w http.ResponseWriter, request *http.Request) {
+
 	var slug = mux.Vars(request)["slug"]
+
 	limit := request.URL.Query().Get("limit")
 	since := request.URL.Query().Get("since")
 	desc := request.URL.Query().Get("desc")
 
 	if getters.GetForumBySlug(slug).Slug == "" {
-		var message models.ResponseMessage
-		message.Message = "Can`t find forum with slug: " + slug
-		output, err := json.Marshal(message)
-		if err != nil {
-			http.Error(w, err.Error(), 500)
-			return
-		}
-		w.Header().Set("content-type", "application/json")
-		w.WriteHeader(404)
-		w.Write(output)
+		WriteNotFoundMessage(w, "Can`t find forum with slug: "+slug)
 		return
 	}
 
-	db := common.GetDB()
-	var rows *sql.Rows
+	db := common.GetPool()
+	var rows *pgx.Rows
 	var err error
 	if desc == "false" || desc == "" {
 		if since == "" {
@@ -204,26 +197,16 @@ func GetThreadUsers(w http.ResponseWriter, request *http.Request) {
 			}
 		}
 	}
-	if err != nil {
-		http.Error(w, err.Error(), 500)
-		return
-	}
+	defer rows.Close()
+	PanicIfError(err)
+
 	users := make([]models.User, 0)
+
 	for rows.Next() {
 		var gotUser models.User
-		err = rows.Scan(&gotUser.About, &gotUser.Email, &gotUser.Fullname, &gotUser.Nickname, &gotUser.ID)
-		if err != nil {
-			http.Error(w, err.Error(), 500)
-			return
-		}
+		PanicIfError(rows.Scan(&gotUser.About, &gotUser.Email, &gotUser.Fullname, &gotUser.Nickname, &gotUser.ID))
 		users = append(users, gotUser)
 	}
-	output, err := json.Marshal(users)
-	if err != nil {
-		http.Error(w, err.Error(), 500)
-		return
-	}
-	w.Header().Set("content-type", "application/json")
-	w.WriteHeader(200)
-	w.Write(output)
+
+	WriteResponce(w, 200, users)
 }
