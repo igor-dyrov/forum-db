@@ -177,60 +177,139 @@ func GetPostsTreeSort(threadID int, limit, since string, desc bool) []models.Pos
 	return handlePostRows(rows)
 }
 
+// func GetPostsParentTreeSort(threadID int, limit, since string, desc bool) []models.Post {
+
+// 	posts := make([]models.Post, 0)
+
+// 	parentPosts := GetParentPosts(threadID)
+// 	pageSize, _ := strconv.Atoi(limit)
+// 	db := common.GetPool()
+
+// 	var req = "SELECT p1.id, p1.author, p1.created, p1.forum, p1.isEdited, p1.message, p1.parent, p1.thread FROM posts AS p1"
+
+// 	if !desc {
+// 		if since == "" {
+// 			for i := range parentPosts {
+// 				if i < pageSize {
+// 					rows, err := db.Query(req+" WHERE p1.thread = $1 AND p1.path[1] = $2 ORDER BY p1.path ASC, p1.id ASC", threadID, parentPosts[i].Id)
+// 					defer rows.Close()
+// 					PanicIfError(err)
+// 					posts = append(posts, handlePostRows(rows)...)
+// 				}
+// 			}
+// 		} else {
+// 			for i := range parentPosts {
+// 				if i <= pageSize {
+// 					rows, err := db.Query(req+" JOIN posts AS p2 ON p1.thread = $1 AND p1.path[1] > p2.path[1]"+
+// 						" AND p2.id = $2 WHERE p1.path[1] = $3 ORDER BY p1.path ASC, p1.id ASC", threadID, since, parentPosts[i].Id)
+// 					defer rows.Close()
+// 					PanicIfError(err)
+// 					posts = append(posts, handlePostRows(rows)...)
+// 				}
+// 			}
+// 		}
+// 	} else {
+// 		if since == "" {
+// 			for i := range parentPosts {
+// 				if i < pageSize {
+// 					var lastParent = parentPosts[len(parentPosts)-1-i].Id
+// 					rows, err := db.Query(req+" WHERE p1.thread = $1 AND p1.path[1] = $2 ORDER BY p1.path ASC, p1.id ASC", threadID, lastParent)
+// 					defer rows.Close()
+// 					PanicIfError(err)
+// 					posts = append(posts, handlePostRows(rows)...)
+// 				}
+// 			}
+// 		} else {
+// 			for i := range parentPosts {
+// 				if i <= pageSize {
+// 					var lastParent = parentPosts[len(parentPosts)-1-i].Id
+// 					rows, err := db.Query(req+" JOIN posts AS p2 ON p1.thread = $1 AND p1.path[1] < p2.path[1]"+
+// 						" AND p2.id = $2 WHERE p1.path[1] = $3 ORDER BY p1.path ASC, p1.id ASC", threadID, since, lastParent)
+// 					defer rows.Close()
+// 					PanicIfError(err)
+// 					posts = append(posts, handlePostRows(rows)...)
+// 				}
+// 			}
+// 		}
+// 	}
+
+// 	return posts
+// }
+
+func getAllParents(threadId int, limit, since string, desc bool) string {
+
+	sinceStr := ""
+	if since != "" {
+		sinceStr = "AND path[1] "
+		if desc {
+			sinceStr += "< "
+		} else {
+			sinceStr += "> "
+		}
+		sinceStr += "(SELECT p.path[1] FROM posts p WHERE p.id = " + since + " )"
+	}
+
+	order := "ASC"
+	if desc {
+		order = "DESC"
+	}
+
+	limitStr := ""
+	if limit != "" {
+		limitStr = "LIMIT " + limit
+	}
+
+	return fmt.Sprintf(
+		"SELECT id FROM posts WHERE thread = %s AND parent = 0 %s ORDER BY id %s %s",
+		strconv.Itoa(threadId),
+		sinceStr,
+		order,
+		limitStr,
+	)
+}
+
 func GetPostsParentTreeSort(threadID int, limit, since string, desc bool) []models.Post {
+
+	// var count int = 0
+	// if limit != "" {
+	// 	var err error
+	// 	count, err = strconv.Atoi(limit)
+	// 	if err != nil {
+	// 		panic(err)
+	// 	}
+	// }
+
+	parentsQuery := getAllParents(threadID, limit, since, desc)
+
+	order := "path"
+	if desc {
+		order = "path[1] DESC, path"
+	}
+	query := fmt.Sprintf(
+		"SELECT created, id, message, parent, author, forum, thread FROM posts WHERE path[1] IN (%s) AND thread = %s ORDER BY %s;",
+		parentsQuery,
+		strconv.Itoa(threadID),
+		order,
+	)
+
+	rows, err := common.GetPool().Query(query)
+	defer rows.Close()
+	PanicIfError(err)
 
 	posts := make([]models.Post, 0)
 
-	parentPosts := GetParentPosts(threadID)
-	pageSize, _ := strconv.Atoi(limit)
-	db := common.GetPool()
-
-	var req = "SELECT p1.id, p1.author, p1.created, p1.forum, p1.isEdited, p1.message, p1.parent, p1.thread FROM posts AS p1"
-
-	if !desc {
-		if since == "" {
-			for i := range parentPosts {
-				if i < pageSize {
-					rows, err := db.Query(req+" WHERE p1.thread = $1 AND p1.path[1] = $2 ORDER BY p1.path ASC, p1.id ASC", threadID, parentPosts[i].Id)
-					defer rows.Close()
-					PanicIfError(err)
-					posts = append(posts, handlePostRows(rows)...)
-				}
-			}
-		} else {
-			for i := range parentPosts {
-				if i <= pageSize {
-					rows, err := db.Query(req+" JOIN posts AS p2 ON p1.thread = $1 AND p1.path[1] > p2.path[1]"+
-						" AND p2.id = $2 WHERE p1.path[1] = $3 ORDER BY p1.path ASC, p1.id ASC", threadID, since, parentPosts[i].Id)
-					defer rows.Close()
-					PanicIfError(err)
-					posts = append(posts, handlePostRows(rows)...)
-				}
-			}
-		}
-	} else {
-		if since == "" {
-			for i := range parentPosts {
-				if i < pageSize {
-					var lastParent = parentPosts[len(parentPosts)-1-i].Id
-					rows, err := db.Query(req+" WHERE p1.thread = $1 AND p1.path[1] = $2 ORDER BY p1.path ASC, p1.id ASC", threadID, lastParent)
-					defer rows.Close()
-					PanicIfError(err)
-					posts = append(posts, handlePostRows(rows)...)
-				}
-			}
-		} else {
-			for i := range parentPosts {
-				if i <= pageSize {
-					var lastParent = parentPosts[len(parentPosts)-1-i].Id
-					rows, err := db.Query(req+" JOIN posts AS p2 ON p1.thread = $1 AND p1.path[1] < p2.path[1]"+
-						" AND p2.id = $2 WHERE p1.path[1] = $3 ORDER BY p1.path ASC, p1.id ASC", threadID, since, lastParent)
-					defer rows.Close()
-					PanicIfError(err)
-					posts = append(posts, handlePostRows(rows)...)
-				}
-			}
-		}
+	for rows.Next() {
+		var post models.Post
+		PanicIfError(rows.Scan(
+			&post.Created,
+			&post.Id,
+			&post.Message,
+			&post.Parent,
+			&post.Author,
+			&post.Forum,
+			&post.Thread,
+		))
+		posts = append(posts, post)
 	}
 
 	return posts
