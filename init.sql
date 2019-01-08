@@ -59,6 +59,16 @@ CREATE TABLE posts (
 
 CREATE UNIQUE INDEX posts_thread_id_idx on posts(thread, id, path);        -- ? 
 
+CREATE UNIQUE INDEX posts_thread_path_idx on posts(thread, path);        -- ? 
+
+CREATE UNIQUE INDEX posts_id_root_idx on posts(id, (path[1])); -- ??
+
+CREATE UNIQUE INDEX posts_root_idx on posts(thread, (path[1]) desc, path); -- ??
+
+CREATE UNIQUE INDEX posts_parent_thread_root_id_idx on posts(parent, thread, (path[1]), id); -- ??
+
+CREATE UNIQUE INDEX posts_parent_thread_id_idx on posts(parent, thread, id); -- ??
+
 
 CREATE TABLE votes (
   id        SERIAL      NOT NULL PRIMARY KEY,
@@ -77,6 +87,10 @@ CREATE TABLE forum_users
 
   UNIQUE(forum, username)
 );
+
+CREATE INDEX IF NOT EXISTS forum_users_username_idx ON forum_users(username);
+CREATE INDEX IF NOT EXISTS forum_users_forum_idx ON forum_users(forum);
+
 
 
 

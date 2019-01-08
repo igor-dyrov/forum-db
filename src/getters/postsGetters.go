@@ -182,13 +182,11 @@ func getAllParents(threadId int, limit, since string, desc bool) string {
 
 	sinceStr := ""
 	if since != "" {
-		sinceStr = "AND path[1] "
 		if desc {
-			sinceStr += "< "
+			sinceStr = fmt.Sprintf("AND path[1] < (SELECT p.path[1] FROM posts p WHERE p.id = %s )", since)
 		} else {
-			sinceStr += "> "
+			sinceStr = fmt.Sprintf("AND path[1] > (SELECT p.path[1] FROM posts p WHERE p.id = %s )", since)
 		}
-		sinceStr += "(SELECT p.path[1] FROM posts p WHERE p.id = " + since + " )"
 	}
 
 	order := "ASC"
