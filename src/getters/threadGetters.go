@@ -1,7 +1,6 @@
 package getters
 
 import (
-	"database/sql"
 	"strconv"
 
 	"github.com/jackc/pgx"
@@ -24,22 +23,6 @@ func GetThreadById(id int) (bool, models.Thread) {
 	}
 
 	return false, thread
-}
-
-func GetThreadBySlug(slug string) models.Thread {
-	db := common.GetDB()
-	rows, err := db.Query("SELECT * FROM threads WHERE slug = $1", slug)
-	if err != nil {
-		return models.Thread{}
-	}
-	var result models.Thread
-	for rows.Next() {
-		err = rows.Scan(&result.ID, &result.Slug, &result.Created, &result.Message, &result.Title, &result.Author, &result.Forum, &result.Votes)
-	}
-	if err != nil {
-		return models.Thread{}
-	}
-	return result
 }
 
 func GetIdBySlug(slug string) int {
@@ -66,8 +49,7 @@ func ConnGetThreadBySlug(slug string, conn *pgx.Conn) *models.Thread {
 
 	result := new(models.Thread)
 	for rows.Next() {
-		err = rows.Scan(&result.ID, &result.Slug, &result.Created, &result.Message, &result.Title, &result.Author, &result.Forum, &result.Votes)
-		PanicIfError(err)
+		PanicIfError(rows.Scan(&result.ID, &result.Slug, &result.Created, &result.Message, &result.Title, &result.Author, &result.Forum, &result.Votes))
 		return result
 	}
 	return nil
@@ -96,28 +78,21 @@ func GetThreadBySlugOrID(slugOrId string) *models.Thread {
 }
 
 func GetThreadIDAndForumBySlugOrID(slugOrId string) (bool, int, string) {
-	pool := common.GetPool()
 
 	var rows *pgx.Rows
 	id, err := strconv.Atoi(slugOrId)
 	if err == nil {
-		rows, err = pool.Query("SELECT id, forum FROM threads WHERE id = $1;", id)
+		rows, err = common.GetPool().Query("SELECT id, forum FROM threads WHERE id = $1;", id)
 	} else {
-		rows, err = pool.Query("SELECT id, forum FROM threads WHERE slug = $1;", slugOrId)
+		rows, err = common.GetPool().Query("SELECT id, forum FROM threads WHERE slug = $1;", slugOrId)
 	}
 	defer rows.Close()
-
-	if err != nil {
-		panic(err)
-	}
+	PanicIfError(err)
 
 	if rows.Next() {
 		var forumSlug string
 		var id int
-		var err = rows.Scan(&id, &forumSlug)
-		if err != nil {
-			panic(err)
-		}
+		PanicIfError(rows.Scan(&id, &forumSlug))
 		return true, id, forumSlug
 	}
 
@@ -125,9 +100,10 @@ func GetThreadIDAndForumBySlugOrID(slugOrId string) (bool, int, string) {
 }
 
 func GetThreads(forum string, limit string, since string, desc string) []models.Thread {
-	db := common.GetDB()
 
-	var rows *sql.Rows
+	db := common.GetPool()
+
+	var rows *pgx.Rows
 	var err error
 
 	if limit != "" {
@@ -167,8 +143,8 @@ func GetThreads(forum string, limit string, since string, desc string) []models.
 	var result = make([]models.Thread, 0)
 
 	for rows.Next() {
-		err = rows.Scan(&thread.ID, &thread.Slug, &thread.Created, &thread.Message, &thread.Title, &thread.Author, &thread.Forum, &thread.Votes)
-		PanicIfError(err)
+		PanicIfError(rows.Scan(&thread.ID, &thread.Slug,
+			&thread.Created, &thread.Message, &thread.Title, &thread.Author, &thread.Forum, &thread.Votes))
 		result = append(result, thread)
 	}
 	return result
@@ -188,59 +164,11 @@ func GetThreadsByForum(forum string) []models.Thread {
 	var result = make([]models.Thread, 0)
 
 	for rows.Next() {
-		err := rows.Scan(&thread.ID, &thread.Slug, &thread.Created, &thread.Message, &thread.Title, &thread.Author, &thread.Forum, &thread.Votes)
-		PanicIfError(err)
-		// thread.ID = GetIdByNickname(thread.Author)
+		PanicIfError(rows.Scan(&thread.ID, &thread.Slug,
+			&thread.Created, &thread.Message, &thread.Title, &thread.Author, &thread.Forum, &thread.Votes))
 		result = append(result, thread)
 	}
-	return result
-}
 
-func GetSlugById(id int) string {
-	db := common.GetDB()
-	rows, err := db.Query(`SELECT forum FROM threads WHERE id = $1`, id)
-	if err != nil {
-		return ""
-	}
-	var result string
-	for rows.Next() {
-		err = rows.Scan(&result)
-	}
-	if err != nil {
-		return ""
-	}
-	return result
-}
-
-func GetThreadId(forum string) int {
-	db := common.GetDB()
-	rows, err := db.Query(`SELECT id FROM threads WHERE slug = $1`, forum)
-	if err != nil {
-		return -1
-	}
-	var result = -1
-	for rows.Next() {
-		err = rows.Scan(&result)
-	}
-	if err != nil {
-		return -1
-	}
-	return result
-}
-
-func GetThreadSlug(slug string) string {
-	db := common.GetDB()
-	rows, err := db.Query(`SELECT forum FROM threads WHERE slug = $1`, slug)
-	if err != nil {
-		return ""
-	}
-	var result string
-	for rows.Next() {
-		err = rows.Scan(&result)
-	}
-	if err != nil {
-		return ""
-	}
 	return result
 }
 

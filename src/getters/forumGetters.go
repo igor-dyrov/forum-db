@@ -1,12 +1,14 @@
 package getters
 
 import (
+	"github.com/jackc/pgx"
+
 	"github.com/igor-dyrov/forum-db/src/common"
 	"github.com/igor-dyrov/forum-db/src/models"
-	"github.com/jackc/pgx"
 )
 
 func GetForumBySlug(slug string) models.Forum {
+
 	rows, err := common.GetPool().Query("SELECT id, slug, title, author, threads, posts from forums WHERE slug = $1", slug)
 	defer rows.Close()
 	PanicIfError(err)
@@ -28,8 +30,7 @@ func GetForumSlug(slug string, conn *pgx.Conn) string {
 
 	var result string
 	for rows.Next() {
-		err = rows.Scan(&result)
-		PanicIfError(err)
+		PanicIfError(rows.Scan(&result))
 		return result
 	}
 	return ""
@@ -43,8 +44,7 @@ func ForumSlugExists(slug string) bool {
 
 	if rows.Next() {
 		var slug string
-		err = rows.Scan(&slug)
-		PanicIfError(err)
+		PanicIfError(rows.Scan(&slug))
 		return true
 	}
 
