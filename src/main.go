@@ -62,7 +62,7 @@ func main() {
 
 	log.Print("<Start server>")
 
-	log.Fatal(http.ListenAndServe(":5000", logHandler))
-	// log.Fatal(http.ListenAndServe(":5000", router))
+	//log.Fatal(http.ListenAndServe(":5000", logHandler))
+	log.Fatal(http.ListenAndServe(":5000", router))
 
 }
