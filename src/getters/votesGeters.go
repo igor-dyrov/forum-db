@@ -18,5 +18,6 @@ func GetVote(nick string, thread int) models.Vote {
 		PanicIfError(rows.Scan(&result.ID, &result.Nickname, &result.Voice, &result.Thread))
 		return result
 	}
+
 	return result
 }

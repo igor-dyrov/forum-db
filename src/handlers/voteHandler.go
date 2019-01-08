@@ -21,13 +21,9 @@ func CreateVote(w http.ResponseWriter, request *http.Request) {
 	PanicIfError(err)
 
 	var vote models.Vote
-	err = json.Unmarshal(body, &vote)
-	PanicIfError(err)
+	PanicIfError(json.Unmarshal(body, &vote))
 
-	conn := common.GetConnection()
-	defer common.Release(conn)
-
-	if !getters.CheckUserByNickname(vote.Nickname, conn) {
+	if !getters.CheckUserByNickname(vote.Nickname) {
 		WriteNotFoundMessage(w, "Can't find thread author by nickname: "+vote.Nickname)
 		return
 	}
@@ -42,7 +38,7 @@ func CreateVote(w http.ResponseWriter, request *http.Request) {
 	numOfVoices := 0
 	oldVote := getters.GetVote(vote.Nickname, thread.ID)
 
-	db := common.GetDB()
+	db := common.GetPool()
 
 	if oldVote.ID != -1 {
 		if oldVote.Voice != vote.Voice {
@@ -50,7 +46,6 @@ func CreateVote(w http.ResponseWriter, request *http.Request) {
 			PanicIfError(err)
 			numOfVoices = vote.Voice * 2
 		} else {
-			// log.Printf("Thread: %v", *thread)
 			WriteResponce(w, 200, thread)
 			return
 		}
@@ -65,11 +60,8 @@ func CreateVote(w http.ResponseWriter, request *http.Request) {
 	PanicIfError(err)
 
 	if rows.Next() {
-		err := rows.Scan(&thread.Votes)
-		PanicIfError(err)
+		PanicIfError(rows.Scan(&thread.Votes))
 	}
-
-	// log.Printf("ThreadID: %d, user: %s, voice: %d -> %d", thread.ID, vote.Nickname, vote.Voice, thread.Votes)
 
 	WriteResponce(w, 200, thread)
 }

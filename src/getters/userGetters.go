@@ -5,7 +5,6 @@ import (
 
 	"github.com/igor-dyrov/forum-db/src/common"
 	"github.com/igor-dyrov/forum-db/src/models"
-	"github.com/jackc/pgx"
 )
 
 func GetUserByNickOrEmail(nickname string, email string) (bool, []models.User) {
@@ -101,18 +100,11 @@ func GetUsersByNicknames(nicknames map[string]bool) []string {
 	return nicksArray
 }
 
-func CheckUserByNickname(nickname string, conn *pgx.Conn) bool {
+func CheckUserByNickname(nickname string) bool {
 
-	rows, err := conn.Query("SELECT nickname FROM users WHERE nickname = $1", nickname)
+	rows, err := common.GetPool().Query("SELECT nickname FROM users WHERE nickname = $1", nickname)
 	defer rows.Close()
 	PanicIfError(err)
 
-	// var nick string
-	if rows.Next() {
-		// err := rows.Scan(&nick)
-		// PanicIfError(err)
-		return true
-	}
-
-	return false
+	return rows.Next()
 }

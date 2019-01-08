@@ -3,6 +3,7 @@ package main
 import (
 	"fmt"
 	"log"
+	"time"
 
 	"net/http"
 
@@ -14,8 +15,17 @@ import (
 
 func logMiddleware(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		fmt.Printf("URL: %v; Method: %v;\n", r.URL.Path, r.Method)
+		if r.Method == "GET" {
+			fmt.Printf("%v -> ", r.URL.Path)
+		}
+
+		start := time.Now()
 		next.ServeHTTP(w, r)
+		dt := time.Since(start)
+
+		if r.Method == "GET" {
+			fmt.Printf("%v\n", dt)
+		}
 	})
 }
 

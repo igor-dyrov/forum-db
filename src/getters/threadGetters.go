@@ -41,9 +41,9 @@ func GetIdBySlug(slug string) int {
 	return result
 }
 
-func ConnGetThreadBySlug(slug string, conn *pgx.Conn) *models.Thread {
+func ConnGetThreadBySlug(slug string) *models.Thread {
 
-	rows, err := conn.Query("SELECT id, slug, created, message, title, author, forum, votes FROM threads WHERE slug = $1", slug)
+	rows, err := common.GetPool().Query("SELECT id, slug, created, message, title, author, forum, votes FROM threads WHERE slug = $1", slug)
 	defer rows.Close()
 	PanicIfError(err)
 
@@ -52,6 +52,7 @@ func ConnGetThreadBySlug(slug string, conn *pgx.Conn) *models.Thread {
 		PanicIfError(rows.Scan(&result.ID, &result.Slug, &result.Created, &result.Message, &result.Title, &result.Author, &result.Forum, &result.Votes))
 		return result
 	}
+
 	return nil
 }
 
