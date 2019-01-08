@@ -57,9 +57,11 @@ func main() {
 	router.HandleFunc(`/api/service/status`, handlers.GetStatus).Methods("GET")
 	router.HandleFunc(`/api/service/clear`, handlers.ClearAll).Methods("POST")
 
-	logHandler := logMiddleware(router)
+	// logHandler := logMiddleware(router)
 
 	log.Print("<Start server>")
 
-	log.Fatal(http.ListenAndServe(":5000", logHandler))
+	// log.Fatal(http.ListenAndServe(":5000", logHandler))
+	log.Fatal(http.ListenAndServe(":5000", router))
+
 }
